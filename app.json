@@ -1,0 +1,69 @@
+{
+  "expo": {
+    "name": "SmartShop Scanner",
+    "slug": "smartshop-scanner",
+    "description": "Professional barcode scanner and retail management app for modern businesses. Features include product scanning, cart management, receipt printing, and sales analytics.",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo.png",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.smartshop.scanner",
+      "permissions": [
+        "CAMERA",
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "INTERNET",
+        "CAMERA",
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "INTERNET"
+      ],
+      "versionCode": 3,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "SmartShop uses Bluetooth to connect to thermal printers for printing receipts.",
+        "NSBluetoothPeripheralUsageDescription": "SmartShop uses Bluetooth to connect to thermal printers for printing receipts.",
+        "NSCameraUsageDescription": "SmartShop uses camera to scan barcodes for product identification."
+      }
+    },
+    "web": {
+      "favicon": "./assets/icon.png",
+      "bundler": "metro"
+    },
+    "privacy": "public",
+    "userInterfaceStyle": "automatic",
+    "extra": {
+      "privacyPolicyUrl": "https://smartshop.com/privacy-policy.html",
+      "eas": {
+        "projectId": "b6c37070-d5ca-4c16-8c5b-7e2f85c36ae4"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b6c37070-d5ca-4c16-8c5b-7e2f85c36ae4"
+    }
+  }
+}
