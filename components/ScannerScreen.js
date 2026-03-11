@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext, useRef } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Image, Platform } from 'react-native';
 import { CameraView, Camera } from 'expo-camera';
+import WebBarcodeScanner from './WebBarcodeScanner';
 import { useFocusEffect } from '@react-navigation/native';
 import { ProductContext, CartContext } from '../contexts';
 import { useTheme } from '../utils/theme';
@@ -100,6 +101,11 @@ const ScannerScreen = () => {
 
   const requestCameraPermission = async () => {
     try {
+      // On web, the browser handles camera permissions natively via html5-qrcode
+      if (Platform.OS === 'web') {
+        setHasPermission(true);
+        return;
+      }
 
       const { status } = await Camera.requestCameraPermissionsAsync();
 
@@ -395,24 +401,33 @@ const ScannerScreen = () => {
               elevation: 12,
               position: 'relative',
             }}>
-              <CameraView
-                key={key}
-                ref={scannerRef}
-                onBarcodeScanned={handleBarCodeScanned}
-                style={{ width: '100%', height: '100%' }}
-                facing="back"
-                barcodeScannerSettings={{
-                  barcodeTypes: [
-                    'qr',
-                    'code128',
-                    'code39',
-                    'ean13',
-                    'ean8',
-                    'upc_a',
-                    'upc_e',
-                  ],
-                }}
-              />
+              {Platform.OS === 'web' ? (
+                <WebBarcodeScanner
+                  key={key}
+                  onBarcodeScanned={handleBarCodeScanned}
+                  style={{ width: '100%', height: '100%' }}
+                  theme={theme}
+                />
+              ) : (
+                <CameraView
+                  key={key}
+                  ref={scannerRef}
+                  onBarcodeScanned={handleBarCodeScanned}
+                  style={{ width: '100%', height: '100%' }}
+                  facing="back"
+                  barcodeScannerSettings={{
+                    barcodeTypes: [
+                      'qr',
+                      'code128',
+                      'code39',
+                      'ean13',
+                      'ean8',
+                      'upc_a',
+                      'upc_e',
+                    ],
+                  }}
+                />
+              )}
 
               {/* Scanner Overlay with darkened borders */}
               <View style={{
