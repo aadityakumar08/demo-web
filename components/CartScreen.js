@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Alert, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Alert, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { CartContext } from '../contexts';
 import { useTheme } from '../utils/theme';
@@ -516,27 +516,40 @@ const CartScreen = () => {
               }}
               onPress={() => {
                 if (cart.length === 0) {
-                  Alert.alert('Empty Cart', 'Please add items to your cart before checkout.');
+                  if (Platform.OS === 'web') {
+                    window.alert('Please add items to your cart before checkout.');
+                  } else {
+                    Alert.alert('Empty Cart', 'Please add items to your cart before checkout.');
+                  }
                   return;
                 }
 
                 const total = getCartTotal();
                 const itemCount = getCartItemCount();
 
-                Alert.alert(
-                  'Confirm Checkout',
-                  `Total: ₹${total.toFixed(2)}\nItems: ${itemCount}\n\nProceed with checkout?`,
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Checkout',
-                      onPress: () => {
-                        // Navigate to Print screen for receipt
-                        navigation.navigate('Print');
+                if (Platform.OS === 'web') {
+                  // Alert.alert is not supported on React Native Web
+                  const confirmed = window.confirm(
+                    `Total: ₹${total.toFixed(2)}\nItems: ${itemCount}\n\nProceed with checkout?`
+                  );
+                  if (confirmed) {
+                    navigation.navigate('Print');
+                  }
+                } else {
+                  Alert.alert(
+                    'Confirm Checkout',
+                    `Total: ₹${total.toFixed(2)}\nItems: ${itemCount}\n\nProceed with checkout?`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Checkout',
+                        onPress: () => {
+                          navigation.navigate('Print');
+                        }
                       }
-                    }
-                  ]
-                );
+                    ]
+                  );
+                }
               }}
             >
               <Text style={{
