@@ -1,11 +1,12 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Alert, TextInput, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { CartContext } from '../contexts';
 import { useTheme } from '../utils/theme';
 import { useTranslation } from '../utils/i18n';
 import { validateInput, validateSchema } from '../utils/validation';
 import { handleError } from '../utils/errorHandler';
+import { crossAlert } from '../utils/crossAlert';
 
 const CartScreen = () => {
   const navigation = useNavigation();
@@ -27,7 +28,7 @@ const CartScreen = () => {
   const increment = (code) => {
     // Validate product code
     if (!validateInput.productCode(code)) {
-      Alert.alert('Error', 'Invalid product code');
+      crossAlert('Error', 'Invalid product code');
       return;
     }
 
@@ -36,7 +37,7 @@ const CartScreen = () => {
       // Validate quantity before increment
       const newQty = item.qty + 1;
       if (!validateInput.quantity(newQty)) {
-        Alert.alert('Error', 'Maximum quantity reached');
+        crossAlert('Error', 'Maximum quantity reached');
         return;
       }
       updateCartItem(code, { qty: newQty });
@@ -46,7 +47,7 @@ const CartScreen = () => {
   const decrement = (code) => {
     // Validate product code
     if (!validateInput.productCode(code)) {
-      Alert.alert('Error', 'Invalid product code');
+      crossAlert('Error', 'Invalid product code');
       return;
     }
 
@@ -61,7 +62,7 @@ const CartScreen = () => {
   const remove = (code) => {
     // Validate product code
     if (!validateInput.productCode(code)) {
-      Alert.alert('Error', 'Invalid product code');
+      crossAlert('Error', 'Invalid product code');
       return;
     }
     removeFromCart(code);
@@ -69,7 +70,7 @@ const CartScreen = () => {
 
   const handleClearCart = () => {
     if (cart.length === 0) return;
-    Alert.alert(
+    crossAlert(
       'Clear Cart',
       'Are you sure you want to clear the cart?',
       [
@@ -516,40 +517,26 @@ const CartScreen = () => {
               }}
               onPress={() => {
                 if (cart.length === 0) {
-                  if (Platform.OS === 'web') {
-                    window.alert('Please add items to your cart before checkout.');
-                  } else {
-                    Alert.alert('Empty Cart', 'Please add items to your cart before checkout.');
-                  }
+                  crossAlert('Empty Cart', 'Please add items to your cart before checkout.');
                   return;
                 }
 
                 const total = getCartTotal();
                 const itemCount = getCartItemCount();
 
-                if (Platform.OS === 'web') {
-                  // Alert.alert is not supported on React Native Web
-                  const confirmed = window.confirm(
-                    `Total: ₹${total.toFixed(2)}\nItems: ${itemCount}\n\nProceed with checkout?`
-                  );
-                  if (confirmed) {
-                    navigation.navigate('Print');
-                  }
-                } else {
-                  Alert.alert(
-                    'Confirm Checkout',
-                    `Total: ₹${total.toFixed(2)}\nItems: ${itemCount}\n\nProceed with checkout?`,
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Checkout',
-                        onPress: () => {
-                          navigation.navigate('Print');
-                        }
+                crossAlert(
+                  'Confirm Checkout',
+                  `Total: ₹${total.toFixed(2)}\nItems: ${itemCount}\n\nProceed with checkout?`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Checkout',
+                      onPress: () => {
+                        navigation.navigate('Print');
                       }
-                    ]
-                  );
-                }
+                    }
+                  ]
+                );
               }}
             >
               <Text style={{

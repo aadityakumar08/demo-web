@@ -48,8 +48,18 @@ const WebBarcodeScanner = ({ onBarcodeScanned, style, theme }) => {
                 scanner = new Html5Qrcode(scannerId);
                 scannerRef.current = scanner;
 
+                const lastScanRef = { time: 0, data: '' };
+
                 const qrCodeSuccessCallback = (decodedText, decodedResult) => {
                     if (!isMounted) return;
+
+                    // Debounce: ignore duplicate scans within 1.5s
+                    const now = Date.now();
+                    if (decodedText === lastScanRef.data && now - lastScanRef.time < 1500) {
+                        return;
+                    }
+                    lastScanRef.time = now;
+                    lastScanRef.data = decodedText;
 
                     // Map html5-qrcode format to expo-camera format
                     const formatMap = {

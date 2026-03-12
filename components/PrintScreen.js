@@ -4,10 +4,10 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
+import { crossAlert } from '../utils/crossAlert';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../utils/theme';
 import { useTranslation } from '../utils/i18n';
@@ -35,7 +35,7 @@ const PrintScreen = () => {
   // ── Print Receipt via System Dialog ──────────────────────
   const handlePrintReceipt = async () => {
     if (cart.length === 0) {
-      Alert.alert('Empty Cart', 'Please add items to cart before printing.');
+      crossAlert('Empty Cart', 'Please add items to cart before printing.');
       return;
     }
 
@@ -56,7 +56,7 @@ const PrintScreen = () => {
           // Order saved locally even if backend sync fails
         }
 
-        Alert.alert(
+        crossAlert(
           '✅ Order Complete',
           `Receipt #${result.orderId} printed & order saved.`,
           [
@@ -68,7 +68,7 @@ const PrintScreen = () => {
         // User cancelled print dialog
       }
     } catch (error) {
-      Alert.alert('Print Error', error.message);
+      crossAlert('Print Error', error.message);
     } finally {
       setIsPrinting(false);
     }
@@ -77,7 +77,7 @@ const PrintScreen = () => {
   // ── Share Receipt as PDF ────────────────────────────────
   const handleShareReceipt = async () => {
     if (cart.length === 0) {
-      Alert.alert('Empty Cart', 'Please add items to cart before sharing.');
+      crossAlert('Empty Cart', 'Please add items to cart before sharing.');
       return;
     }
 
@@ -88,7 +88,7 @@ const PrintScreen = () => {
         setLastPrint(result);
       }
     } catch (error) {
-      Alert.alert('Share Error', error.message);
+      crossAlert('Share Error', error.message);
     } finally {
       setIsSharing(false);
     }

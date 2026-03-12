@@ -5,12 +5,12 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Alert,
   Modal,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { crossAlert } from '../utils/crossAlert';
 import { Ionicons } from '@expo/vector-icons';
 import { ProductContext, CartContext } from '../contexts';
 import { useTheme } from '../utils/theme';
@@ -52,7 +52,7 @@ const AdminScreen = () => {
 
   const authenticate = async () => {
     if (!password.trim()) {
-      Alert.alert('Error', 'Please enter a password');
+      crossAlert('Error', 'Please enter a password');
       return;
     }
 
@@ -62,13 +62,13 @@ const AdminScreen = () => {
       if (result.success) {
         setIsAuthenticated(true);
         setPassword('');
-        Alert.alert('Success', 'Admin access granted');
+        crossAlert('Success', 'Admin access granted');
       } else {
-        Alert.alert('Access Denied', result.error || 'Invalid password');
+        crossAlert('Access Denied', result.error || 'Invalid password');
         setPassword('');
       }
     } catch (error) {
-      Alert.alert('Error', 'Authentication failed');
+      crossAlert('Error', 'Authentication failed');
     } finally {
       setIsLoading(false);
     }
@@ -76,17 +76,17 @@ const AdminScreen = () => {
 
   const addProduct = async () => {
     if (!newProduct.name || !newProduct.price || !newProduct.code) {
-      Alert.alert('Error', 'Please fill all required fields');
+      crossAlert('Error', 'Please fill all required fields');
       return;
     }
 
     if (isNaN(parseFloat(newProduct.price)) || parseFloat(newProduct.price) <= 0) {
-      Alert.alert('Error', 'Please enter a valid price');
+      crossAlert('Error', 'Please enter a valid price');
       return;
     }
 
     if (isNaN(parseInt(newProduct.stock)) || parseInt(newProduct.stock) < 0) {
-      Alert.alert('Error', 'Please enter a valid stock quantity');
+      crossAlert('Error', 'Please enter a valid stock quantity');
       return;
     }
 
@@ -105,19 +105,19 @@ const AdminScreen = () => {
         setProducts(result);
         setNewProduct({ name: '', price: '', code: '', category: 'General', stock: '1' });
         setShowAddModal(false);
-        Alert.alert('Success', 'Product added successfully');
+        crossAlert('Success', 'Product added successfully');
       } else {
-        Alert.alert('Error', 'Failed to add product — check API connection');
+        crossAlert('Error', 'Failed to add product — check API connection');
       }
     } catch (error) {
-      Alert.alert('Add Product Error', error.message || 'Unknown error');
+      crossAlert('Add Product Error', error.message || 'Unknown error');
     } finally {
       setIsLoading(false);
     }
   };
 
   const clearAllData = () => {
-    Alert.alert(
+    crossAlert(
       'Clear All Data',
       'This will delete all products and cart data. Are you sure?',
       [
@@ -128,7 +128,7 @@ const AdminScreen = () => {
           onPress: () => {
             setProducts({});
             setCart([]);
-            Alert.alert('Success', 'All data cleared');
+            crossAlert('Success', 'All data cleared');
           }
         }
       ]
@@ -141,9 +141,9 @@ const AdminScreen = () => {
       await dataManager.refreshFromSheets();
       const allProducts = await dataManager.getAllProducts();
       setProducts(allProducts);
-      Alert.alert('Success', 'Data refreshed successfully');
+      crossAlert('Success', 'Data refreshed successfully');
     } catch (error) {
-      Alert.alert('Error', 'Failed to refresh data');
+      crossAlert('Error', 'Failed to refresh data');
     } finally {
       setIsLoading(false);
     }
@@ -153,9 +153,9 @@ const AdminScreen = () => {
     try {
       await logout();
       setIsAuthenticated(false);
-      Alert.alert('Success', 'Logged out successfully');
+      crossAlert('Success', 'Logged out successfully');
     } catch (error) {
-      Alert.alert('Error', 'Logout failed');
+      crossAlert('Error', 'Logout failed');
     }
   };
 

@@ -4,10 +4,11 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Linking,
+  Platform,
 } from 'react-native';
+import { crossAlert } from '../utils/crossAlert';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../utils/theme';
 import { useTranslation } from '../utils/i18n';
@@ -32,10 +33,10 @@ const BluetoothTestScreen = () => {
       const result = await printReceipt(testCart, total);
 
       if (result.success) {
-        Alert.alert('✅ Test Print Sent', `Receipt #${result.orderId} was sent to your printer.`);
+        crossAlert('✅ Test Print Sent', `Receipt #${result.orderId} was sent to your printer.`);
       }
     } catch (error) {
-      Alert.alert('Print Failed', error.message);
+      crossAlert('Print Failed', error.message);
     } finally {
       setIsPrinting(false);
     }
@@ -43,8 +44,12 @@ const BluetoothTestScreen = () => {
 
   // Open Android Bluetooth settings
   const openBluetoothSettings = () => {
+    if (Platform.OS === 'web') {
+      crossAlert('Info', 'Bluetooth pairing is not available on web. Please use a mobile device to pair your printer.');
+      return;
+    }
     Linking.sendIntent('android.settings.BLUETOOTH_SETTINGS').catch(() => {
-      Alert.alert('Info', 'Please open Settings → Bluetooth to pair your printer.');
+      crossAlert('Info', 'Please open Settings → Bluetooth to pair your printer.');
     });
   };
 
@@ -52,12 +57,12 @@ const BluetoothTestScreen = () => {
   const checkHistory = async () => {
     const history = await getPrintHistory();
     setHistoryCount(history.length);
-    Alert.alert('Print History', `${history.length} receipts have been printed.`);
+    crossAlert('Print History', `${history.length} receipts have been printed.`);
   };
 
   // Clear print history
   const handleClearHistory = () => {
-    Alert.alert(
+    crossAlert(
       'Clear History',
       'Are you sure you want to clear all print history?',
       [
@@ -68,7 +73,7 @@ const BluetoothTestScreen = () => {
           onPress: async () => {
             await clearPrintHistory();
             setHistoryCount(0);
-            Alert.alert('✅ Done', 'Print history cleared.');
+            crossAlert('✅ Done', 'Print history cleared.');
           },
         },
       ]

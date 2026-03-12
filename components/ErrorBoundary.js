@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { crossAlert } from '../utils/crossAlert';
 import { useTheme } from '../utils/theme';
 import { useTranslation } from '../utils/i18n';
 import { errorLogger } from '../utils/errorHandler';
@@ -52,7 +53,7 @@ class ErrorBoundary extends React.Component {
 
   handleReportError = () => {
     const { error, errorInfo } = this.state;
-    Alert.alert(
+    crossAlert(
       'Error Report',
       'Would you like to report this error?',
       [
@@ -60,9 +61,8 @@ class ErrorBoundary extends React.Component {
         { 
           text: 'Report', 
           onPress: () => {
-            // Here you would implement error reporting
             console.log('Error reported:', { error, errorInfo });
-            Alert.alert('Thank you', 'Error has been reported.');
+            crossAlert('Thank you', 'Error has been reported.');
           }
         }
       ]
