@@ -2,6 +2,7 @@
 // Web-only barcode scanner using html5-qrcode (replaces expo-camera on web)
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 let Html5Qrcode = null;
 // Dynamic import for web-only library
@@ -218,7 +219,7 @@ const WebBarcodeScanner = ({ onBarcodeScanned, style, theme }) => {
                         zIndex: 10,
                     }}
                 >
-                    <Text style={{ fontSize: 40, marginBottom: 16 }}>📷</Text>
+                    <Ionicons name="camera" size={40} color={themeColors.error} style={{ marginBottom: 16 }} />
                     <Text
                         style={{
                             color: themeColors.error,

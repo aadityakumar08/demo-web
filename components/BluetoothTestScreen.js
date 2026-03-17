@@ -33,7 +33,7 @@ const BluetoothTestScreen = () => {
       const result = await printReceipt(testCart, total);
 
       if (result.success) {
-        crossAlert('✅ Test Print Sent', `Receipt #${result.orderId} was sent to your printer.`);
+        crossAlert('Test Print Sent', `Receipt #${result.orderId} was sent to your printer.`);
       }
     } catch (error) {
       crossAlert('Print Failed', error.message);
@@ -73,7 +73,7 @@ const BluetoothTestScreen = () => {
           onPress: async () => {
             await clearPrintHistory();
             setHistoryCount(0);
-            crossAlert('✅ Done', 'Print history cleared.');
+            crossAlert('Done', 'Print history cleared.');
           },
         },
       ]
@@ -159,9 +159,12 @@ const BluetoothTestScreen = () => {
         shadowRadius: 8,
         elevation: 4,
       }}>
-        <Text style={{ fontSize: 28, fontWeight: 'bold', color: theme.text, marginBottom: 4 }}>
-          ⚙️ Printer Setup
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+          <Ionicons name="settings" size={24} color={theme.text} style={{ marginRight: 8 }} />
+          <Text style={{ fontSize: 28, fontWeight: 'bold', color: theme.text }}>
+            Printer Setup
+          </Text>
+        </View>
         <Text style={{ fontSize: 14, color: theme.textSecondary }}>
           Test & configure your printer
         </Text>
@@ -241,9 +244,12 @@ const BluetoothTestScreen = () => {
             { q: 'WiFi printer not found?', a: 'Ensure your phone and printer are on the same WiFi network.' },
           ].map((faq, index) => (
             <View key={index} style={{ marginBottom: 14 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: theme.text, marginBottom: 4 }}>
-                ❓ {faq.q}
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              <Ionicons name="help-circle" size={14} color={theme.text} style={{ marginRight: 6, marginTop: 1 }} />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: theme.text, marginBottom: 4, flex: 1 }}>
+                {faq.q}
               </Text>
+            </View>
               <Text style={{ fontSize: 13, color: theme.textSecondary, lineHeight: 20, paddingLeft: 24 }}>
                 {faq.a}
               </Text>

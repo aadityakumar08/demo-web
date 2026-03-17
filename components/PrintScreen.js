@@ -1,373 +1,821 @@
-import React, { useState, useContext } from 'react';
+// components/PrintScreen.js
+// Full Checkout + Payment + Print flow
+// Reads cart from CartContext, supports UPI QR and Cash payments,
+// plays success sound via expo-av, prints/shares receipts.
+
+import React, { useState, useContext, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
+  ScrollView,
   ActivityIndicator,
-  Dimensions,
+  Platform,
 } from 'react-native';
-import { crossAlert } from '../utils/crossAlert';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../utils/theme';
-import { useTranslation } from '../utils/i18n';
-import { CartContext, ProductContext } from '../contexts';
-import { printReceipt, shareReceiptAsPDF, getPrintHistory } from '../utils/printer';
-import { completeOrder } from '../utils/orderManager';
-import { TAX_RATE } from '../config';
-import dataManager from '../utils/dataManager';
+import { CartContext } from '../contexts';
+import { CURRENCY, SHOP_NAME } from '../config';
+import { printReceipt, shareAsPDF } from '../utils/printer';
+import { crossAlert } from '../utils/crossAlert';
 
-const { width } = Dimensions.get('window');
+// Lazy imports for optional dependencies
+let QRCode = null;
+let Audio = null;
+
+try {
+  QRCode = require('react-native-qrcode-svg').default;
+} catch (e) {
+  // QR code library not available — UPI QR will show fallback
+}
+
+try {
+  Audio = require('expo-av').Audio;
+} catch (e) {
+  // Audio not available — sound will be silently skipped
+}
+
+const UPI_ID = 'aadibhai5098-1@okaxis';
+const UPI_PAYEE_NAME = 'Aniket_Garments';
 
 const PrintScreen = () => {
   const { theme } = useTheme();
-  const { t } = useTranslation();
   const { cart, clearCart } = useContext(CartContext);
-  const { setProducts } = useContext(ProductContext);
+
+  // Payment state
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('upi');
+  const [paymentStatus, setPaymentStatus] = useState('pending'); // 'pending' | 'success'
+  const [isPaymentDone, setIsPaymentDone] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
-  const [lastPrint, setLastPrint] = useState(null);
 
-  const calculateTotal = () => {
-    return cart.reduce((total, item) => total + (item.price * item.qty), 0);
+  // Sound ref for cleanup
+  const soundRef = useRef(null);
+  const confirmTimerRef = useRef(null);
+
+  // Reset state when cart changes (new checkout session)
+  useEffect(() => {
+    setPaymentStatus('pending');
+    setIsPaymentDone(false);
+    setSelectedPaymentMethod('upi');
+    setIsConfirming(false);
+  }, [cart.length]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        try {
+          soundRef.current.unloadAsync();
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+        soundRef.current = null;
+      }
+      if (confirmTimerRef.current) {
+        clearTimeout(confirmTimerRef.current);
+        confirmTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Calculate totals safely
+  const subtotal = cart.reduce((sum, item) => {
+    const price = Number(item.price) || 0;
+    const qty = Number(item.qty) || 1;
+    return sum + price * qty;
+  }, 0);
+  const total = subtotal; // Tax is handled in printer.js
+
+  const formatCurrency = (val) => `${CURRENCY}${(Number(val) || 0).toFixed(2)}`;
+
+  // Generate UPI payment string
+  const getUPIString = useCallback(() => {
+    if (total <= 0) return '';
+    return `upi://pay?pa=${UPI_ID}&pn=${UPI_PAYEE_NAME}&am=${total.toFixed(2)}&cu=INR`;
+  }, [total]);
+
+  // Play success sound
+  const playSuccessSound = async () => {
+    if (!Audio) return;
+    try {
+      // Unload previous sound if any
+      if (soundRef.current) {
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+
+      const { sound } = await Audio.Sound.createAsync(
+        // Use a built-in system sound or a bundled asset
+        // For cross-platform compatibility, we'll use a simple approach
+        { uri: 'https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg' },
+        { shouldPlay: true, volume: 0.8 }
+      );
+      soundRef.current = sound;
+
+      // Auto-unload after playback
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) {
+          sound.unloadAsync().catch(() => { });
+          if (soundRef.current === sound) {
+            soundRef.current = null;
+          }
+        }
+      });
+    } catch (e) {
+      // Sound playback failed — non-critical, ignore silently
+      console.warn('Sound playback failed:', e.message);
+    }
   };
 
-  // ── Print Receipt via System Dialog ──────────────────────
-  const handlePrintReceipt = async () => {
-    if (cart.length === 0) {
-      crossAlert('Empty Cart', 'Please add items to cart before printing.');
-      return;
-    }
+  // Confirm payment (debounced)
+  const handleConfirmPayment = useCallback(() => {
+    if (isPaymentDone || isConfirming) return;
 
+    setIsConfirming(true);
+
+    // Debounce: prevent rapid double-taps
+    confirmTimerRef.current = setTimeout(async () => {
+      setPaymentStatus('success');
+      setIsPaymentDone(true);
+      setIsConfirming(false);
+
+      // Play success sound (non-blocking)
+      playSuccessSound();
+
+      confirmTimerRef.current = null;
+    }, 300);
+  }, [isPaymentDone, isConfirming]);
+
+  // Cash payment — instant success
+  const handleCashPayment = useCallback(() => {
+    if (isPaymentDone) return;
+    setSelectedPaymentMethod('cash');
+    setPaymentStatus('success');
+    setIsPaymentDone(true);
+    playSuccessSound();
+  }, [isPaymentDone]);
+
+  // Print receipt
+  const handlePrint = async () => {
+    if (!isPaymentDone || isPrinting) return;
     setIsPrinting(true);
     try {
-      const result = await printReceipt(cart, calculateTotal());
-
+      const result = await printReceipt(cart, total);
       if (result.success) {
-        setLastPrint(result);
-
-        // Save order to backend + decrement stock
-        try {
-          await completeOrder(cart, TAX_RATE);
-          // Refresh products to get updated stock values
-          const updated = await dataManager.refreshFromSheets();
-          if (Object.keys(updated).length > 0) setProducts(updated);
-        } catch (e) {
-          // Order saved locally even if backend sync fails
-        }
-
-        crossAlert(
-          '✅ Order Complete',
-          `Receipt #${result.orderId} printed & order saved.`,
-          [
-            { text: 'Keep Cart', style: 'cancel' },
-            { text: 'Clear Cart', onPress: () => clearCart(), style: 'destructive' },
-          ]
-        );
-      } else if (result.cancelled) {
-        // User cancelled print dialog
+        crossAlert('Receipt Printed', `Order #${result.orderId} has been sent to your printer.`);
       }
     } catch (error) {
-      crossAlert('Print Error', error.message);
+      crossAlert('Print Failed', error.message || 'Unable to print receipt. Please try again.');
     } finally {
       setIsPrinting(false);
     }
   };
 
-  // ── Share Receipt as PDF ────────────────────────────────
-  const handleShareReceipt = async () => {
-    if (cart.length === 0) {
-      crossAlert('Empty Cart', 'Please add items to cart before sharing.');
-      return;
-    }
-
+  // Share as PDF
+  const handleShare = async () => {
+    if (!isPaymentDone || isSharing) return;
     setIsSharing(true);
     try {
-      const result = await shareReceiptAsPDF(cart, calculateTotal());
+      const result = await shareAsPDF(cart, total);
       if (result.success) {
-        setLastPrint(result);
+        // Sharing dialog opened — no alert needed
       }
     } catch (error) {
-      crossAlert('Share Error', error.message);
+      crossAlert('Share Failed', error.message || 'Unable to share receipt.');
     } finally {
       setIsSharing(false);
     }
   };
 
-  // ── Receipt Preview Component ──────────────────────────
-  const ReceiptPreview = () => (
-    <View style={{
-      backgroundColor: '#fff',
-      padding: 20,
-      borderRadius: 12,
-      marginBottom: 20,
-      borderWidth: 1,
-      borderColor: theme.border,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 6,
-    }}>
-      {/* Receipt Header */}
-      <View style={{ alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#ddd', borderStyle: 'dashed' }}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000', marginBottom: 4 }}>
-          🏪 SmartShop Scanner
-        </Text>
-        <Text style={{ fontSize: 11, color: '#666' }}>
-          {new Date().toLocaleString('en-IN')}
-        </Text>
-      </View>
+  // Handle new order (clear cart and reset)
+  const handleNewOrder = () => {
+    crossAlert(
+      'Start New Order',
+      'This will clear the cart and start a new checkout. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, New Order',
+          onPress: () => {
+            clearCart();
+            setPaymentStatus('pending');
+            setIsPaymentDone(false);
+            setSelectedPaymentMethod('upi');
+          },
+        },
+      ]
+    );
+  };
 
-      {/* Receipt Items */}
-      <View style={{ marginBottom: 12 }}>
-        <View style={{ flexDirection: 'row', paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#eee' }}>
-          <Text style={{ flex: 3, fontSize: 10, fontWeight: 'bold', color: '#444' }}>ITEM</Text>
-          <Text style={{ flex: 1, fontSize: 10, fontWeight: 'bold', color: '#444', textAlign: 'center' }}>QTY</Text>
-          <Text style={{ flex: 1.5, fontSize: 10, fontWeight: 'bold', color: '#444', textAlign: 'right' }}>TOTAL</Text>
-        </View>
-        {cart.map((item, index) => (
-          <View key={index} style={{ flexDirection: 'row', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' }}>
-            <Text style={{ flex: 3, fontSize: 13, color: '#000' }} numberOfLines={1}>{item.name}</Text>
-            <Text style={{ flex: 1, fontSize: 13, color: '#444', textAlign: 'center' }}>{item.qty}</Text>
-            <Text style={{ flex: 1.5, fontSize: 13, fontWeight: '600', color: '#000', textAlign: 'right' }}>
-              ₹{(item.price * item.qty).toFixed(2)}
-            </Text>
-          </View>
-        ))}
-      </View>
+  // ============================================================
+  // RENDER
+  // ============================================================
 
-      {/* Receipt Total */}
-      <View style={{ paddingTop: 12, borderTopWidth: 2, borderTopColor: '#000', alignItems: 'flex-end' }}>
-        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#000' }}>
-          Total: ₹{calculateTotal().toFixed(2)}
-        </Text>
-        <Text style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
-          {cart.reduce((sum, item) => sum + item.qty, 0)} items
-        </Text>
-      </View>
-
-      {/* Footer */}
-      <View style={{ alignItems: 'center', marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#ddd', borderStyle: 'dashed' }}>
-        <Text style={{ fontSize: 11, color: '#666' }}>🙏 Thank you for shopping!</Text>
-      </View>
-    </View>
-  );
-
-  // ── Action Button Component ────────────────────────────
-  const ActionButton = ({ title, icon, onPress, color, isLoading, loadingText, disabled }) => (
-    <TouchableOpacity
-      style={{
-        backgroundColor: disabled ? theme.border : color,
-        paddingVertical: 18,
-        paddingHorizontal: 24,
-        borderRadius: 16,
-        alignItems: 'center',
-        flexDirection: 'row',
+  // Empty cart state
+  if (!cart || cart.length === 0) {
+    return (
+      <View style={{
+        flex: 1,
+        backgroundColor: theme.background,
         justifyContent: 'center',
-        marginBottom: 12,
-        shadowColor: color,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: disabled ? 0 : 0.3,
-        shadowRadius: 8,
-        elevation: disabled ? 0 : 6,
-        opacity: disabled ? 0.6 : 1,
-      }}
-      onPress={onPress}
-      disabled={disabled || isLoading}
-    >
-      {isLoading ? (
-        <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-      ) : (
-        <Ionicons name={icon} size={20} color="#fff" style={{ marginRight: 8 }} />
-      )}
-      <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>
-        {isLoading ? loadingText : title}
-      </Text>
-    </TouchableOpacity>
-  );
+        alignItems: 'center',
+        padding: 32,
+      }}>
+        <View style={{
+          width: 80,
+          height: 80,
+          borderRadius: 40,
+          backgroundColor: theme.primary + '15',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 24,
+        }}>
+          <Ionicons name="cart-outline" size={40} color={theme.primary} />
+        </View>
+        <Text style={{
+          fontSize: 24,
+          fontWeight: 'bold',
+          color: theme.text,
+          marginBottom: 8,
+          textAlign: 'center',
+        }}>
+          No Items to Checkout
+        </Text>
+        <Text style={{
+          fontSize: 16,
+          color: theme.textSecondary,
+          textAlign: 'center',
+          lineHeight: 24,
+        }}>
+          Add products to your cart using the Scanner tab, then come back here to checkout.
+        </Text>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.background }}>
-      {/* Header */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 24,
-        paddingVertical: 20,
-        paddingTop: 50,
-        backgroundColor: theme.background,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.border + '20',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 4,
-      }}>
-        <View>
-          <Text style={{ fontSize: 28, fontWeight: 'bold', color: theme.text, marginBottom: 4 }}>
-            🖨️ Print Center
-          </Text>
-          <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-            Print or share receipts
-          </Text>
-        </View>
-
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ==================== HEADER ==================== */}
         <View style={{
-          backgroundColor: cart.length > 0 ? theme.success + '20' : theme.border + '20',
-          paddingVertical: 8,
-          paddingHorizontal: 16,
+          backgroundColor: theme.card,
           borderRadius: 20,
-          borderWidth: 1,
-          borderColor: cart.length > 0 ? theme.success + '40' : theme.border,
+          padding: 24,
+          marginBottom: 20,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          elevation: 4,
         }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="receipt" size={24} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{
+              fontSize: 28,
+              fontWeight: 'bold',
+              color: theme.text,
+              marginBottom: 4,
+            }}>
+              Checkout
+            </Text>
+          </View>
           <Text style={{
-            color: cart.length > 0 ? theme.success : theme.textSecondary,
-            fontWeight: 'bold',
-            fontSize: 12,
+            fontSize: 14,
+            color: theme.textSecondary,
           }}>
-            {cart.length} Items
+            {cart.length} item{cart.length !== 1 ? 's' : ''} • {SHOP_NAME}
           </Text>
         </View>
-      </View>
 
-      <View style={{ padding: 24 }}>
-        {/* Print Actions */}
+        {/* ==================== BILL SUMMARY ==================== */}
         <View style={{
           backgroundColor: theme.card,
-          padding: 24,
-          borderRadius: 16,
-          marginBottom: 24,
+          borderRadius: 20,
+          overflow: 'hidden',
+          marginBottom: 20,
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
           shadowRadius: 8,
-          elevation: 6,
+          elevation: 4,
         }}>
-          <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text, marginBottom: 20 }}>
-            ⚡ Actions
-          </Text>
-
-          <ActionButton
-            title="Print Receipt"
-            icon="print"
-            onPress={handlePrintReceipt}
-            color={theme.primary}
-            isLoading={isPrinting}
-            loadingText="Opening printer..."
-            disabled={cart.length === 0}
-          />
-
-          <ActionButton
-            title="Share as PDF"
-            icon="share-social"
-            onPress={handleShareReceipt}
-            color={theme.success}
-            isLoading={isSharing}
-            loadingText="Generating PDF..."
-            disabled={cart.length === 0}
-          />
-        </View>
-
-        {/* Receipt Preview */}
-        {cart.length > 0 && (
-          <View style={{ marginBottom: 24 }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text, marginBottom: 16 }}>
-              📄 Receipt Preview
-            </Text>
-            <ReceiptPreview />
-          </View>
-        )}
-
-        {/* Empty Cart Message */}
-        {cart.length === 0 && (
+          {/* Section Title */}
           <View style={{
-            backgroundColor: theme.card,
-            padding: 40,
-            borderRadius: 16,
+            flexDirection: 'row',
             alignItems: 'center',
-            marginBottom: 24,
+            padding: 16,
+            paddingBottom: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border + '20',
           }}>
-            <Ionicons name="cart-outline" size={64} color={theme.textSecondary} style={{ opacity: 0.4 }} />
-            <Text style={{ fontSize: 18, fontWeight: '600', color: theme.textSecondary, marginTop: 16 }}>
-              Cart is empty
-            </Text>
-            <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 8, textAlign: 'center' }}>
-              Scan products to add them to your cart, then come back here to print or share the receipt.
+            <Ionicons name="list" size={18} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>
+              Bill Summary
             </Text>
           </View>
-        )}
 
-        {/* Last Print Info */}
-        {lastPrint && (
+          {/* Column Headers */}
           <View style={{
-            backgroundColor: theme.card,
-            padding: 20,
-            borderRadius: 16,
-            marginBottom: 24,
-            borderLeftWidth: 4,
-            borderLeftColor: theme.success,
+            flexDirection: 'row',
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            backgroundColor: theme.primary + '08',
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border + '15',
           }}>
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text, marginBottom: 8 }}>
-              ✅ Last Receipt
-            </Text>
-            <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-              Order: #{lastPrint.orderId}
-            </Text>
-            {lastPrint.total && (
-              <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-                Total: ₹{lastPrint.total.toFixed(2)}
-              </Text>
-            )}
-            <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 4 }}>
-              {lastPrint.timestamp ? new Date(lastPrint.timestamp).toLocaleString('en-IN') : ''}
-            </Text>
+            <Text style={{ flex: 2, fontSize: 12, fontWeight: '700', color: theme.textSecondary }}>ITEM</Text>
+            <Text style={{ flex: 1, fontSize: 12, fontWeight: '700', color: theme.textSecondary, textAlign: 'center' }}>QTY</Text>
+            <Text style={{ flex: 1, fontSize: 12, fontWeight: '700', color: theme.textSecondary, textAlign: 'right' }}>AMOUNT</Text>
           </View>
-        )}
 
-        {/* Printer Tips */}
-        <View style={{
-          backgroundColor: theme.card,
-          padding: 24,
-          borderRadius: 16,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 6,
-        }}>
-          <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text, marginBottom: 16 }}>
-            💡 Printer Setup
-          </Text>
-
-          {[
-            { icon: 'bluetooth', text: 'Pair your Bluetooth printer in Android Settings → Bluetooth' },
-            { icon: 'wifi', text: 'WiFi printers are auto-detected on the same network' },
-            { icon: 'print', text: 'Tap "Print Receipt" to open the print dialog and select your printer' },
-            { icon: 'share-social', text: 'Use "Share as PDF" to send receipts via WhatsApp or email' },
-          ].map((tip, index) => (
-            <View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
-              <View style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: theme.primary + '15',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: 12,
-              }}>
-                <Ionicons name={tip.icon} size={18} color={theme.primary} />
+          {/* Items */}
+          {cart.map((item, index) => (
+            <View key={item.code || index} style={{
+              flexDirection: 'row',
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              alignItems: 'center',
+              borderBottomWidth: index < cart.length - 1 ? 1 : 0,
+              borderBottomColor: theme.border + '10',
+            }}>
+              <View style={{ flex: 2 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.text }} numberOfLines={1}>
+                  {item.name || item.code || 'Item'}
+                </Text>
+                <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 2 }}>
+                  {formatCurrency(item.price)} each
+                </Text>
               </View>
-              <Text style={{ flex: 1, fontSize: 14, color: theme.textSecondary, lineHeight: 20 }}>
-                {tip.text}
+              <Text style={{ flex: 1, fontSize: 14, color: theme.text, textAlign: 'center' }}>
+                {item.qty || 1}
+              </Text>
+              <Text style={{ flex: 1, fontSize: 14, fontWeight: '600', color: theme.text, textAlign: 'right' }}>
+                {formatCurrency((Number(item.price) || 0) * (Number(item.qty) || 1))}
               </Text>
             </View>
           ))}
+
+          {/* Totals */}
+          <View style={{
+            paddingHorizontal: 16,
+            paddingVertical: 16,
+            borderTopWidth: 2,
+            borderTopColor: theme.border + '30',
+            backgroundColor: theme.primary + '05',
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>Total</Text>
+              <Text style={{ fontSize: 22, fontWeight: 'bold', color: theme.success }}>
+                {formatCurrency(total)}
+              </Text>
+            </View>
+          </View>
         </View>
-      </View>
-    </ScrollView>
+
+        {/* ==================== PAYMENT METHOD ==================== */}
+        {!isPaymentDone && (
+          <View style={{
+            backgroundColor: theme.card,
+            borderRadius: 20,
+            padding: 20,
+            marginBottom: 20,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 4,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <Ionicons name="wallet" size={18} color={theme.text} style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>
+                Payment Method
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              {/* UPI Option */}
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingVertical: 16,
+                  paddingHorizontal: 12,
+                  borderRadius: 16,
+                  borderWidth: 2,
+                  borderColor: selectedPaymentMethod === 'upi' ? theme.primary : theme.border + '40',
+                  backgroundColor: selectedPaymentMethod === 'upi' ? theme.primary + '10' : 'transparent',
+                  alignItems: 'center',
+                }}
+                onPress={() => setSelectedPaymentMethod('upi')}
+                disabled={isPaymentDone}
+              >
+                <Ionicons
+                  name="qr-code"
+                  size={28}
+                  color={selectedPaymentMethod === 'upi' ? theme.primary : theme.textSecondary}
+                />
+                <Text style={{
+                  marginTop: 8,
+                  fontSize: 15,
+                  fontWeight: '700',
+                  color: selectedPaymentMethod === 'upi' ? theme.primary : theme.text,
+                }}>
+                  UPI
+                </Text>
+                <Text style={{
+                  marginTop: 2,
+                  fontSize: 11,
+                  color: theme.textSecondary,
+                }}>
+                  Scan QR to pay
+                </Text>
+              </TouchableOpacity>
+
+              {/* Cash Option */}
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingVertical: 16,
+                  paddingHorizontal: 12,
+                  borderRadius: 16,
+                  borderWidth: 2,
+                  borderColor: selectedPaymentMethod === 'cash' ? theme.primary : theme.border + '40',
+                  backgroundColor: selectedPaymentMethod === 'cash' ? theme.primary + '10' : 'transparent',
+                  alignItems: 'center',
+                }}
+                onPress={() => setSelectedPaymentMethod('cash')}
+                disabled={isPaymentDone}
+              >
+                <Ionicons
+                  name="cash"
+                  size={28}
+                  color={selectedPaymentMethod === 'cash' ? theme.primary : theme.textSecondary}
+                />
+                <Text style={{
+                  marginTop: 8,
+                  fontSize: 15,
+                  fontWeight: '700',
+                  color: selectedPaymentMethod === 'cash' ? theme.primary : theme.text,
+                }}>
+                  Cash
+                </Text>
+                <Text style={{
+                  marginTop: 2,
+                  fontSize: 11,
+                  color: theme.textSecondary,
+                }}>
+                  Pay with cash
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* ==================== PAYMENT ACTION ==================== */}
+        {!isPaymentDone && (
+          <View style={{
+            backgroundColor: theme.card,
+            borderRadius: 20,
+            padding: 20,
+            marginBottom: 20,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 4,
+          }}>
+            {selectedPaymentMethod === 'upi' ? (
+              <>
+                {/* UPI QR Code */}
+                <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                    color: theme.text,
+                    marginBottom: 16,
+                    textAlign: 'center',
+                  }}>
+                    Scan to pay {formatCurrency(total)}
+                  </Text>
+
+                  {total > 0 && QRCode ? (
+                    <View style={{
+                      padding: 16,
+                      backgroundColor: '#fff',
+                      borderRadius: 16,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 4,
+                      elevation: 3,
+                    }}>
+                      <QRCode
+                        value={getUPIString()}
+                        size={200}
+                        backgroundColor="#fff"
+                        color="#000"
+                      />
+                    </View>
+                  ) : (
+                    <View style={{
+                      width: 232,
+                      height: 232,
+                      borderRadius: 16,
+                      backgroundColor: theme.border + '20',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <Ionicons name="qr-code" size={48} color={theme.textSecondary} />
+                      <Text style={{
+                        fontSize: 13,
+                        color: theme.textSecondary,
+                        marginTop: 8,
+                        textAlign: 'center',
+                        paddingHorizontal: 20,
+                      }}>
+                        {total <= 0 ? 'Invalid amount' : 'QR Code library not available'}
+                      </Text>
+                    </View>
+                  )}
+
+                  <Text style={{
+                    fontSize: 12,
+                    color: theme.textSecondary,
+                    marginTop: 12,
+                    textAlign: 'center',
+                  }}>
+                    UPI ID: {UPI_ID}
+                  </Text>
+                </View>
+
+                {/* Confirm UPI Payment */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: theme.success,
+                    paddingVertical: 16,
+                    borderRadius: 16,
+                    alignItems: 'center',
+                    opacity: isConfirming ? 0.7 : 1,
+                  }}
+                  onPress={handleConfirmPayment}
+                  disabled={isConfirming || isPaymentDone}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    {isConfirming ? (
+                      <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+                    ) : (
+                      <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginRight: 8 }} />
+                    )}
+                    <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>
+                      {isConfirming ? 'Confirming...' : 'Confirm Payment Received'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {/* Cash Payment */}
+                <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                  <View style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 40,
+                    backgroundColor: theme.success + '15',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 16,
+                  }}>
+                    <Ionicons name="cash" size={40} color={theme.success} />
+                  </View>
+                  <Text style={{
+                    fontSize: 18,
+                    fontWeight: '600',
+                    color: theme.text,
+                    marginBottom: 4,
+                  }}>
+                    Cash Payment
+                  </Text>
+                  <Text style={{
+                    fontSize: 14,
+                    color: theme.textSecondary,
+                    textAlign: 'center',
+                  }}>
+                    Collect {formatCurrency(total)} from customer
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: theme.success,
+                    paddingVertical: 16,
+                    borderRadius: 16,
+                    alignItems: 'center',
+                  }}
+                  onPress={handleCashPayment}
+                  disabled={isPaymentDone}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>
+                      Confirm Cash Received
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        )}
+
+        {/* ==================== PAYMENT STATUS ==================== */}
+        {isPaymentDone && (
+          <View style={{
+            backgroundColor: theme.success + '12',
+            borderRadius: 20,
+            padding: 24,
+            marginBottom: 20,
+            borderWidth: 1,
+            borderColor: theme.success + '30',
+            alignItems: 'center',
+          }}>
+            <View style={{
+              width: 64,
+              height: 64,
+              borderRadius: 32,
+              backgroundColor: theme.success + '20',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16,
+            }}>
+              <Ionicons name="checkmark-circle" size={40} color={theme.success} />
+            </View>
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: theme.success,
+              marginBottom: 4,
+            }}>
+              Payment Successful
+            </Text>
+            <Text style={{
+              fontSize: 14,
+              color: theme.textSecondary,
+              textAlign: 'center',
+            }}>
+              {formatCurrency(total)} received via {selectedPaymentMethod === 'upi' ? 'UPI' : 'Cash'}
+            </Text>
+          </View>
+        )}
+
+        {/* ==================== ACTIONS ==================== */}
+        <View style={{
+          backgroundColor: theme.card,
+          borderRadius: 20,
+          padding: 20,
+          marginBottom: 20,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          elevation: 4,
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <Ionicons name="print" size={18} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>
+              Receipt Actions
+            </Text>
+          </View>
+
+          {/* Print Button */}
+          <TouchableOpacity
+            style={{
+              backgroundColor: isPaymentDone ? theme.primary : theme.border + '60',
+              paddingVertical: 16,
+              borderRadius: 16,
+              alignItems: 'center',
+              marginBottom: 12,
+              opacity: isPrinting ? 0.7 : 1,
+            }}
+            onPress={handlePrint}
+            disabled={!isPaymentDone || isPrinting}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {isPrinting ? (
+                <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+              ) : (
+                <Ionicons name="print" size={20} color="#fff" style={{ marginRight: 8 }} />
+              )}
+              <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>
+                {isPrinting ? 'Printing...' : 'Print Receipt'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Share Button */}
+          <TouchableOpacity
+            style={{
+              backgroundColor: isPaymentDone ? '#6366f1' : theme.border + '60',
+              paddingVertical: 16,
+              borderRadius: 16,
+              alignItems: 'center',
+              marginBottom: 12,
+              opacity: isSharing ? 0.7 : 1,
+            }}
+            onPress={handleShare}
+            disabled={!isPaymentDone || isSharing}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {isSharing ? (
+                <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+              ) : (
+                <Ionicons name="share-social" size={20} color="#fff" style={{ marginRight: 8 }} />
+              )}
+              <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>
+                {isSharing ? 'Sharing...' : 'Share as PDF'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* New Order Button */}
+          {isPaymentDone && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: 'transparent',
+                paddingVertical: 14,
+                borderRadius: 16,
+                alignItems: 'center',
+                borderWidth: 2,
+                borderColor: theme.primary + '40',
+              }}
+              onPress={handleNewOrder}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="add-circle" size={20} color={theme.primary} style={{ marginRight: 8 }} />
+                <Text style={{ color: theme.primary, fontSize: 17, fontWeight: 'bold' }}>
+                  New Order
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {!isPaymentDone && (
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingTop: 8,
+            }}>
+              <Ionicons name="information-circle" size={14} color={theme.textSecondary} style={{ marginRight: 4 }} />
+              <Text style={{ fontSize: 12, color: theme.textSecondary }}>
+                Complete payment to enable printing
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* ==================== PRINTER TIPS ==================== */}
+        <View style={{
+          backgroundColor: theme.card,
+          borderRadius: 20,
+          padding: 20,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          elevation: 4,
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <Ionicons name="bulb" size={18} color={theme.warning || '#f59e0b'} style={{ marginRight: 8 }} />
+            <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
+              Printer Tips
+            </Text>
+          </View>
+          <View style={{ gap: 8 }}>
+            {[
+              'Ensure your printer is connected via WiFi or Bluetooth',
+              'For thermal printers, use the Setup tab to test connectivity',
+              'Receipts can also be shared as PDF via WhatsApp or email',
+            ].map((tip, index) => (
+              <View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                <Ionicons name="ellipse" size={6} color={theme.textSecondary} style={{ marginRight: 8, marginTop: 6 }} />
+                <Text style={{
+                  fontSize: 13,
+                  color: theme.textSecondary,
+                  lineHeight: 20,
+                  flex: 1,
+                }}>
+                  {tip}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 

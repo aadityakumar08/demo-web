@@ -192,15 +192,18 @@ const AdminScreen = () => {
             <Ionicons name="shield-checkmark" size={40} color={theme.primary} />
           </View>
 
-          <Text style={{
-            fontSize: 28,
-            fontWeight: 'bold',
-            color: theme.text,
-            marginBottom: 16,
-            textAlign: 'center'
-          }}>
-            🔐 Admin Access
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="lock-closed" size={24} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{
+              fontSize: 28,
+              fontWeight: 'bold',
+              color: theme.text,
+              marginBottom: 16,
+              textAlign: 'center'
+            }}>
+              Admin Access
+            </Text>
+          </View>
 
           <Text style={{
             fontSize: 16,
@@ -250,13 +253,19 @@ const AdminScreen = () => {
             disabled={isLoading}
           >
             {isLoading ? (
-              <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
-                🔄 Authenticating...
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="refresh" size={18} color="#fff" style={{ marginRight: 6 }} />
+                <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
+                  Authenticating...
+                </Text>
+              </View>
             ) : (
-              <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
-                🔓 Login to Admin Panel
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="lock-open" size={18} color="#fff" style={{ marginRight: 6 }} />
+                <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
+                  Login to Admin Panel
+                </Text>
+              </View>
             )}
           </TouchableOpacity>
         </View>
@@ -284,14 +293,17 @@ const AdminScreen = () => {
         elevation: 4,
       }}>
         <View>
-          <Text style={{
-            fontSize: 28,
-            fontWeight: 'bold',
-            color: theme.text,
-            marginBottom: 4
-          }}>
-            ⚙️ Admin Panel
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="settings" size={24} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{
+              fontSize: 28,
+              fontWeight: 'bold',
+              color: theme.text,
+              marginBottom: 4
+            }}>
+              Admin Panel
+            </Text>
+          </View>
           <Text style={{
             fontSize: 14,
             color: theme.textSecondary
@@ -311,13 +323,16 @@ const AdminScreen = () => {
           }}
           onPress={handleLogout}
         >
-          <Text style={{
-            color: theme.error,
-            fontWeight: 'bold',
-            fontSize: 16
-          }}>
-            🚪 Logout
-          </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="log-out" size={16} color={theme.error} style={{ marginRight: 4 }} />
+              <Text style={{
+                color: theme.error,
+                fontWeight: 'bold',
+                fontSize: 16
+              }}>
+                Logout
+              </Text>
+            </View>
         </TouchableOpacity>
       </View>
 
@@ -335,9 +350,12 @@ const AdminScreen = () => {
             borderLeftWidth: 4,
             borderLeftColor: theme.warning,
           }}>
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.warning, marginBottom: 8 }}>
-              ⚠️ Low Stock Alert ({lowStock.length} items)
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <Ionicons name="warning" size={16} color={theme.warning} style={{ marginRight: 6 }} />
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.warning }}>
+                Low Stock Alert ({lowStock.length} items)
+              </Text>
+            </View>
             {lowStock.slice(0, 5).map(item => (
               <View key={item.code} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
                 <Text style={{ color: theme.text, fontSize: 14 }}>{item.name}</Text>
@@ -363,14 +381,16 @@ const AdminScreen = () => {
           shadowRadius: 8,
           elevation: 6,
         }}>
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: theme.text,
-            marginBottom: 20
-          }}>
-            📊 Dashboard Statistics
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+            <Ionicons name="bar-chart" size={20} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: theme.text,
+            }}>
+              Dashboard Statistics
+            </Text>
+          </View>
 
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
             <View style={{ flex: 1, alignItems: 'center' }}>
@@ -414,14 +434,16 @@ const AdminScreen = () => {
           shadowRadius: 8,
           elevation: 6,
         }}>
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: theme.text,
-            marginBottom: 20
-          }}>
-            ⚡ Quick Actions
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+            <Ionicons name="flash" size={20} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: theme.text,
+            }}>
+              Quick Actions
+            </Text>
+          </View>
 
           <TouchableOpacity
             style={{
@@ -444,7 +466,7 @@ const AdminScreen = () => {
           >
             <Ionicons name="refresh" size={20} color="#fff" style={{ marginRight: 8 }} />
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-              {isLoading ? '🔄 Refreshing...' : '🔄 Refresh Data'}
+              {isLoading ? 'Refreshing...' : 'Refresh Data'}
             </Text>
           </TouchableOpacity>
 
@@ -468,7 +490,7 @@ const AdminScreen = () => {
           >
             <Ionicons name="add-circle" size={20} color="#fff" style={{ marginRight: 8 }} />
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-              ➕ Add New Product
+              Add New Product
             </Text>
           </TouchableOpacity>
 
@@ -491,7 +513,7 @@ const AdminScreen = () => {
           >
             <Ionicons name="trash" size={20} color="#fff" style={{ marginRight: 8 }} />
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-              🗑️ Clear All Data
+              Clear All Data
             </Text>
           </TouchableOpacity>
         </View>
@@ -507,14 +529,16 @@ const AdminScreen = () => {
           shadowRadius: 8,
           elevation: 6,
         }}>
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: theme.text,
-            marginBottom: 20
-          }}>
-            ℹ️ System Information
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+            <Ionicons name="information-circle" size={20} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: theme.text,
+            }}>
+              System Information
+            </Text>
+          </View>
 
           <View style={{ marginBottom: 12 }}>
             <Text style={{ fontSize: 16, color: theme.textSecondary, marginBottom: 4 }}>
@@ -529,9 +553,12 @@ const AdminScreen = () => {
             <Text style={{ fontSize: 16, color: theme.textSecondary, marginBottom: 4 }}>
               Status
             </Text>
-            <Text style={{ fontSize: 18, color: theme.success, fontWeight: '600' }}>
-              ✅ All Systems Operational
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="checkmark-circle" size={18} color={theme.success} style={{ marginRight: 6 }} />
+              <Text style={{ fontSize: 18, color: theme.success, fontWeight: '600' }}>
+                All Systems Operational
+              </Text>
+            </View>
           </View>
 
           <View>
@@ -565,15 +592,17 @@ const AdminScreen = () => {
             shadowRadius: 16,
             elevation: 12,
           }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24, justifyContent: 'center' }}>
+            <Ionicons name="add-circle" size={24} color={theme.text} style={{ marginRight: 8 }} />
             <Text style={{
               fontSize: 24,
               fontWeight: 'bold',
               color: theme.text,
-              marginBottom: 24,
               textAlign: 'center'
             }}>
-              ➕ Add New Product
+              Add New Product
             </Text>
+          </View>
 
             <TextInput
               style={{
@@ -674,9 +703,12 @@ const AdminScreen = () => {
                 }}
                 onPress={() => setShowAddModal(false)}
               >
-                <Text style={{ color: theme.text, fontSize: 16, fontWeight: 'bold' }}>
-                  ❌ Cancel
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="close-circle" size={16} color={theme.text} style={{ marginRight: 4 }} />
+                  <Text style={{ color: theme.text, fontSize: 16, fontWeight: 'bold' }}>
+                    Cancel
+                  </Text>
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -696,7 +728,7 @@ const AdminScreen = () => {
                 disabled={isLoading}
               >
                 <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-                  {isLoading ? '🔄 Adding...' : '✅ Add Product'}
+                  {isLoading ? 'Adding...' : 'Add Product'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -716,9 +748,12 @@ const AdminScreen = () => {
           shadowRadius: 8,
           elevation: 6,
         }}>
-          <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text, marginBottom: 16 }}>
-            📜 Order History
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <Ionicons name="document-text" size={20} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>
+              Order History
+            </Text>
+          </View>
 
           {orders.length > 0 ? (
             orders.slice(0, 20).map((order, index) => (

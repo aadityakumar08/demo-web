@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, Switch } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Switch } from 'react-native';
+import { crossAlert } from '../utils/crossAlert';
+import { Ionicons } from '@expo/vector-icons';
 import styled, { useTheme } from 'styled-components/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeModeContext } from '../contexts';
@@ -37,24 +39,24 @@ const SettingsScreen = () => {
 
   const saveSettings = async () => {
     await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify({ shopName, currency }));
-    Alert.alert(t('saved'), t('settings_updated'));
+    crossAlert(t('saved'), t('settings_updated'));
   };
 
   const changePassword = async () => {
     if (!adminPassword || !newPassword || !confirmPassword) {
-      Alert.alert(t('error'), t('fill_all_password_fields'));
+      crossAlert(t('error'), t('fill_all_password_fields'));
       return;
     }
     if (adminPassword !== ADMIN_PASSWORD) {
-      Alert.alert(t('error'), t('current_password_incorrect'));
+      crossAlert(t('error'), t('current_password_incorrect'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert(t('error'), t('new_passwords_do_not_match'));
+      crossAlert(t('error'), t('new_passwords_do_not_match'));
       return;
     }
     // In a real app, update password in secure storage or backend
-    Alert.alert(t('success'), t('password_changed'));
+    crossAlert(t('success'), t('password_changed'));
     setAdminPassword('');
     setNewPassword('');
     setConfirmPassword('');
@@ -68,7 +70,7 @@ const SettingsScreen = () => {
 
   return (
     <Container>
-      <Title accessibilityRole="header">⚙️ {t('settings')}</Title>
+      <Title accessibilityRole="header"><Ionicons name="settings" size={18} color="#6366f1" /> {t('settings')}</Title>
       <Label>{t('shop_name')}</Label>
       <Input
         value={shopName}

@@ -226,14 +226,17 @@ const AnalyticsScreen = () => {
         elevation: 4,
       }}>
         <View>
-          <Text style={{
-            fontSize: 28,
-            fontWeight: 'bold',
-            color: theme.text,
-            marginBottom: 4
-          }}>
-            📊 Analytics
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="bar-chart" size={24} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{
+              fontSize: 28,
+              fontWeight: 'bold',
+              color: theme.text,
+              marginBottom: 4
+            }}>
+              Analytics
+            </Text>
+          </View>
           <Text style={{
             fontSize: 14,
             color: theme.textSecondary
@@ -305,14 +308,16 @@ const AnalyticsScreen = () => {
 
         {/* Key Metrics */}
         <View style={{ marginBottom: 24 }}>
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: theme.text,
-            marginBottom: 16
-          }}>
-            📈 Key Metrics
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <Ionicons name="trending-up" size={20} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: theme.text,
+            }}>
+              Key Metrics
+            </Text>
+          </View>
 
           <StatCard
             title="Total Sales"
@@ -359,14 +364,16 @@ const AnalyticsScreen = () => {
           shadowRadius: 8,
           elevation: 6,
         }}>
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: theme.text,
-            marginBottom: 16
-          }}>
-            🏆 Top Products
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <Ionicons name="trophy" size={20} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: theme.text,
+            }}>
+              Top Products
+            </Text>
+          </View>
 
           {analyticsData.topProducts.length > 0 ? (
             analyticsData.topProducts.map((product, index) => (
@@ -403,14 +410,16 @@ const AnalyticsScreen = () => {
           shadowRadius: 8,
           elevation: 6,
         }}>
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: theme.text,
-            marginBottom: 16
-          }}>
-            📂 Category Breakdown
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <Ionicons name="folder-open" size={20} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: theme.text,
+            }}>
+              Category Breakdown
+            </Text>
+          </View>
 
           {analyticsData.categoryBreakdown.length > 0 ? (
             analyticsData.categoryBreakdown.map((category, index) => (
@@ -468,14 +477,16 @@ const AnalyticsScreen = () => {
           shadowRadius: 8,
           elevation: 6,
         }}>
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: theme.text,
-            marginBottom: 16
-          }}>
-            ⏰ Recent Activity
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <Ionicons name="time" size={20} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: theme.text,
+            }}>
+              Recent Activity
+            </Text>
+          </View>
 
           {analyticsData.recentTransactions.length > 0 ? (
             analyticsData.recentTransactions.map((order, index) => (

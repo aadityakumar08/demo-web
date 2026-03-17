@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext, useRef } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Image, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { CameraView, Camera } from 'expo-camera';
 import WebBarcodeScanner from './WebBarcodeScanner';
 import { useFocusEffect } from '@react-navigation/native';
@@ -238,7 +239,7 @@ const ScannerScreen = () => {
             justifyContent: 'center',
             marginBottom: 24
           }}>
-            <Text style={{ fontSize: 32, color: theme.error }}>📷</Text>
+            <Ionicons name="camera" size={32} color={theme.error} />
           </View>
           <Text style={{
             fontSize: 20,
@@ -339,13 +340,16 @@ const ScannerScreen = () => {
           }}
           onPress={handleReset}
         >
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="refresh" size={16} color={theme.primary} style={{ marginRight: 4 }} />
           <Text style={{
             fontSize: 16,
             color: theme.primary,
             fontWeight: '600'
           }}>
-            🔄 Reset
+            Reset
           </Text>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -365,7 +369,7 @@ const ScannerScreen = () => {
           shadowRadius: 4,
           elevation: 3,
         }}>
-          <Text style={{ fontSize: 20, marginRight: 12 }}>⚠️</Text>
+          <Ionicons name="warning" size={20} color={theme.error} style={{ marginRight: 12 }} />
           <Text style={{
             color: theme.error,
             fontSize: 15,
@@ -470,15 +474,17 @@ const ScannerScreen = () => {
               alignItems: 'center',
               paddingHorizontal: 20,
             }}>
-              <Text style={{
-                fontSize: 18,
-                color: theme.text,
-                textAlign: 'center',
-                fontWeight: '600',
-                marginBottom: 8,
-              }}>
-                📱 Point camera at barcode
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+                <Ionicons name="scan" size={20} color={theme.text} style={{ marginRight: 6 }} />
+                <Text style={{
+                  fontSize: 18,
+                  color: theme.text,
+                  textAlign: 'center',
+                  fontWeight: '600',
+                }}>
+                  Point camera at barcode
+                </Text>
+              </View>
               <Text style={{
                 fontSize: 14,
                 color: theme.textSecondary,
@@ -512,9 +518,10 @@ const ScannerScreen = () => {
                 shadowRadius: 4,
                 elevation: 2,
               }}>
-                <Text style={{ fontSize: 12, color: theme.textSecondary, marginBottom: 4 }}>
-                  📦 Products
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <Ionicons name="cube" size={12} color={theme.textSecondary} style={{ marginRight: 4 }} />
+                  <Text style={{ fontSize: 12, color: theme.textSecondary }}>Products</Text>
+                </View>
                 <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>
                   {Object.keys(products).length}
                 </Text>
@@ -534,9 +541,10 @@ const ScannerScreen = () => {
                 shadowRadius: 4,
                 elevation: 2,
               }}>
-                <Text style={{ fontSize: 12, color: theme.textSecondary, marginBottom: 4 }}>
-                  🛒 Cart Items
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <Ionicons name="cart" size={12} color={theme.textSecondary} style={{ marginRight: 4 }} />
+                  <Text style={{ fontSize: 12, color: theme.textSecondary }}>Cart Items</Text>
+                </View>
                 <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>
                   {cart.length}
                 </Text>
@@ -575,7 +583,7 @@ const ScannerScreen = () => {
                     alignSelf: 'center',
                     marginBottom: 24,
                   }}>
-                    <Text style={{ fontSize: 32, color: theme.success }}>✅</Text>
+                    <Ionicons name="checkmark-circle" size={32} color={theme.success} />
                   </View>
 
                   <Text style={{
@@ -603,9 +611,10 @@ const ScannerScreen = () => {
                       alignItems: 'center',
                       marginBottom: 12,
                     }}>
-                      <Text style={{ fontSize: 16, color: theme.textSecondary }}>
-                        💰 Price
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Ionicons name="pricetag" size={16} color={theme.textSecondary} style={{ marginRight: 4 }} />
+                        <Text style={{ fontSize: 16, color: theme.textSecondary }}>Price</Text>
+                      </View>
                       <Text style={{
                         fontSize: 20,
                         color: theme.text,
@@ -620,9 +629,10 @@ const ScannerScreen = () => {
                       justifyContent: 'space-between',
                       alignItems: 'center',
                     }}>
-                      <Text style={{ fontSize: 16, color: theme.textSecondary }}>
-                        🏷️ Code
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Ionicons name="barcode" size={16} color={theme.textSecondary} style={{ marginRight: 4 }} />
+                        <Text style={{ fontSize: 16, color: theme.textSecondary }}>Code</Text>
+                      </View>
                       <Text style={{
                         fontSize: 16,
                         color: theme.text,
@@ -642,16 +652,20 @@ const ScannerScreen = () => {
                     borderColor: theme.success + '30',
                     alignItems: 'center',
                   }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="cart" size={16} color={theme.success} style={{ marginRight: 6 }} />
                     <Text style={{
                       color: theme.success,
                       fontSize: 16,
                       fontWeight: 'bold',
                       textAlign: 'center',
                     }}>
-                      🛒 Added to Cart Successfully!
+                      Added to Cart Successfully!
                     </Text>
+                    </View>
                   </View>
                 </>
+
               ) : (
                 <>
                   {/* Error Icon */}
@@ -665,7 +679,7 @@ const ScannerScreen = () => {
                     alignSelf: 'center',
                     marginBottom: 24,
                   }}>
-                    <Text style={{ fontSize: 32, color: theme.error }}>❌</Text>
+                    <Ionicons name="close-circle" size={32} color={theme.error} />
                   </View>
 
                   <Text style={{
@@ -705,13 +719,16 @@ const ScannerScreen = () => {
                   elevation: 6,
                 }}
               >
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="refresh" size={18} color="#fff" style={{ marginRight: 6 }} />
                 <Text style={{
                   color: '#fff',
                   fontWeight: 'bold',
                   fontSize: 18
                 }}>
-                  🔄 Scan Another Product
+                  Scan Another Product
                 </Text>
+                </View>
               </TouchableOpacity>
             </View>
           </View>

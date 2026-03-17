@@ -14,17 +14,17 @@ export const en = {
   admin: 'Admin',
   
   // Scanner Screen
-  scanProduct: '📦 Scan Product',
-  testScan: '▶️ Test Scan 123456789',
+  scanProduct: 'Scan Product',
+  testScan: 'Test Scan 123456789',
   scanAnother: 'Scan Another',
-  productNotFound: '❌ Product not found!',
-  addedToCart: '✅ Added to cart!',
+  productNotFound: 'Product not found!',
+  addedToCart: 'Added to cart!',
   name: 'Name',
   price: 'Price',
   code: 'Code',
   
   // Cart Screen
-  cartTitle: '🛒 Cart',
+  cartTitle: 'Cart',
   searchPlaceholder: 'Search by name or code',
   noProductsFound: 'No products found.',
   total: 'Total',
@@ -81,28 +81,28 @@ export const en = {
   logout: 'Logout',
   
   // Status Messages
-  offlineMessage: '📱 Offline: Using cached products',
-  errorMessage: '⚠️ Error',
+  offlineMessage: 'Offline: Using cached products',
+  errorMessage: 'Error',
   loadingMessage: 'Loading SmartShopScanner...',
   loadingCart: 'Loading cart...',
   requestingPermission: 'Requesting camera permission...',
   noCameraAccess: 'No access to camera. Please enable camera permissions in your device settings.',
   
   // Debug Section
-  debugInfo: '🔧 Debug Info',
+  debugInfo: 'Debug Info',
   productsLoaded: 'Products loaded',
   apiStatus: 'API Status',
   timeSinceLastFetch: 'Time since last fetch',
   blockedFor: 'Blocked for',
-  clearCache: '🗑️ Clear Cache',
-  performance: '📊 Performance',
-  unblockApi: '🔓 Unblock API',
+  clearCache: 'Clear Cache',
+  performance: 'Performance',
+  unblockApi: 'Unblock API',
   
   // API Status
-  fetching: '⏳ Fetching...',
-  blocked: '🚫 Blocked',
-  cached: '✅ Cached',
-  fresh: '🔄 Fresh',
+  fetching: 'Fetching...',
+  blocked: 'Blocked',
+  cached: 'Cached',
+  fresh: 'Fresh',
   
   // Alerts
   cacheCleared: 'Cache Cleared',
@@ -149,17 +149,17 @@ export const hi = {
   admin: 'एडमिन',
   
   // Scanner Screen
-  scanProduct: '📦 प्रोडक्ट स्कैन करें',
-  testScan: '▶️ टेस्ट स्कैन 123456789',
+  scanProduct: 'प्रोडक्ट स्कैन करें',
+  testScan: 'टेस्ट स्कैन 123456789',
   scanAnother: 'दूसरा स्कैन करें',
-  productNotFound: '❌ प्रोडक्ट नहीं मिला!',
-  addedToCart: '✅ कार्ट में जोड़ा गया!',
+  productNotFound: 'प्रोडक्ट नहीं मिला!',
+  addedToCart: 'कार्ट में जोड़ा गया!',
   name: 'नाम',
   price: 'कीमत',
   code: 'कोड',
   
   // Cart Screen
-  cartTitle: '🛒 कार्ट',
+  cartTitle: 'कार्ट',
   searchPlaceholder: 'नाम या कोड से खोजें',
   noProductsFound: 'कोई प्रोडक्ट नहीं मिला।',
   total: 'कुल',
@@ -216,28 +216,28 @@ export const hi = {
   logout: 'लॉगआउट',
   
   // Status Messages
-  offlineMessage: '📱 ऑफलाइन: कैश्ड प्रोडक्ट्स का उपयोग कर रहे हैं',
-  errorMessage: '⚠️ त्रुटि',
+  offlineMessage: 'ऑफलाइन: कैश्ड प्रोडक्ट्स का उपयोग कर रहे हैं',
+  errorMessage: 'त्रुटि',
   loadingMessage: 'SmartShopScanner लोड हो रहा है...',
   loadingCart: 'कार्ट लोड हो रहा है...',
   requestingPermission: 'कैमरा अनुमति मांग रहा है...',
   noCameraAccess: 'कैमरा तक पहुंच नहीं है। कृपया अपनी डिवाइस सेटिंग्स में कैमरा अनुमतियां सक्षम करें।',
   
   // Debug Section
-  debugInfo: '🔧 डीबग जानकारी',
+  debugInfo: 'डीबग जानकारी',
   productsLoaded: 'लोड किए गए प्रोडक्ट्स',
   apiStatus: 'API स्थिति',
   timeSinceLastFetch: 'पिछले फेच के बाद का समय',
   blockedFor: 'ब्लॉक किया गया',
-  clearCache: '🗑️ कैश साफ़ करें',
-  performance: '📊 प्रदर्शन',
-  unblockApi: '🔓 API अनब्लॉक करें',
+  clearCache: 'कैश साफ़ करें',
+  performance: 'प्रदर्शन',
+  unblockApi: 'API अनब्लॉक करें',
   
   // API Status
-  fetching: '⏳ फेच हो रहा है...',
-  blocked: '🚫 ब्लॉक किया गया',
-  cached: '✅ कैश्ड',
-  fresh: '🔄 ताज़ा',
+  fetching: 'फेच हो रहा है...',
+  blocked: 'ब्लॉक किया गया',
+  cached: 'कैश्ड',
+  fresh: 'ताज़ा',
   
   // Alerts
   cacheCleared: 'कैश साफ़ किया गया',

@@ -7,6 +7,7 @@ import { useTranslation } from '../utils/i18n';
 import { validateInput, validateSchema } from '../utils/validation';
 import { handleError } from '../utils/errorHandler';
 import { crossAlert } from '../utils/crossAlert';
+import { Ionicons } from '@expo/vector-icons';
 
 const CartScreen = () => {
   const navigation = useNavigation();
@@ -124,9 +125,10 @@ const CartScreen = () => {
               alignItems: 'center',
               marginBottom: 8,
             }}>
-              <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-                🏷️ Code
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="barcode" size={14} color={theme.textSecondary} style={{ marginRight: 4 }} />
+                <Text style={{ fontSize: 14, color: theme.textSecondary }}>Code</Text>
+              </View>
               <Text style={{
                 fontSize: 14,
                 color: theme.text,
@@ -142,9 +144,10 @@ const CartScreen = () => {
               alignItems: 'center',
               marginBottom: 8,
             }}>
-              <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-                💰 Price
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="pricetag" size={14} color={theme.textSecondary} style={{ marginRight: 4 }} />
+                <Text style={{ fontSize: 14, color: theme.textSecondary }}>Price</Text>
+              </View>
               <Text style={{
                 fontSize: 14,
                 color: theme.text,
@@ -159,9 +162,10 @@ const CartScreen = () => {
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-                📦 Quantity
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="cube" size={14} color={theme.textSecondary} style={{ marginRight: 4 }} />
+                <Text style={{ fontSize: 14, color: theme.textSecondary }}>Quantity</Text>
+              </View>
               <Text style={{
                 fontSize: 14,
                 color: theme.text,
@@ -259,13 +263,16 @@ const CartScreen = () => {
             }}
             onPress={() => remove(item.code)}
           >
-            <Text style={{
-              color: theme.error,
-              fontWeight: 'bold',
-              fontSize: 14
-            }}>
-              🗑️ Remove
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="trash" size={14} color={theme.error} style={{ marginRight: 4 }} />
+              <Text style={{
+                color: theme.error,
+                fontWeight: 'bold',
+                fontSize: 14
+              }}>
+                Remove
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -335,14 +342,17 @@ const CartScreen = () => {
         elevation: 4,
       }}>
         <View>
-          <Text style={{
-            fontSize: 28,
-            fontWeight: 'bold',
-            color: theme.text,
-            marginBottom: 4
-          }}>
-            🛒 Shopping Cart
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="cart" size={24} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{
+              fontSize: 28,
+              fontWeight: 'bold',
+              color: theme.text,
+              marginBottom: 4
+            }}>
+              Shopping Cart
+            </Text>
+          </View>
           <Text style={{
             fontSize: 14,
             color: theme.textSecondary
@@ -363,13 +373,16 @@ const CartScreen = () => {
             }}
             onPress={handleClearCart}
           >
-            <Text style={{
-              color: theme.error,
-              fontWeight: 'bold',
-              fontSize: 16
-            }}>
-              🗑️ Clear All
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="trash" size={16} color={theme.error} style={{ marginRight: 4 }} />
+              <Text style={{
+                color: theme.error,
+                fontWeight: 'bold',
+                fontSize: 16
+              }}>
+                Clear All
+              </Text>
+            </View>
           </TouchableOpacity>
         )}
       </View>
@@ -393,7 +406,7 @@ const CartScreen = () => {
             shadowRadius: 8,
             elevation: 4,
           }}>
-            <Text style={{ fontSize: 18, marginRight: 12 }}>🔍</Text>
+            <Ionicons name="search" size={18} color={theme.textSecondary} style={{ marginRight: 12 }} />
             <TextInput
               style={{
                 flex: 1,
@@ -439,7 +452,7 @@ const CartScreen = () => {
               justifyContent: 'center',
               marginBottom: 24,
             }}>
-              <Text style={{ fontSize: 40, color: theme.primary }}>🛒</Text>
+              <Ionicons name="cart" size={40} color={theme.primary} />
             </View>
             <Text style={{
               fontSize: 24,
@@ -539,13 +552,16 @@ const CartScreen = () => {
                 );
               }}
             >
-              <Text style={{
-                color: '#fff',
-                fontSize: 18,
-                fontWeight: 'bold'
-              }}>
-                💳 Proceed to Checkout
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="card" size={18} color="#fff" style={{ marginRight: 6 }} />
+                <Text style={{
+                  color: '#fff',
+                  fontSize: 18,
+                  fontWeight: 'bold'
+                }}>
+                  Proceed to Checkout
+                </Text>
+              </View>
             </TouchableOpacity>
           </View>
         </>

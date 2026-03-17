@@ -110,7 +110,7 @@ function generateReceiptHTML(cart, taxes, orderId, shopConfig = {}) {
       <div class="header">
         <div class="shop-name">${shop.name}</div>
         ${shop.address ? `<div class="shop-detail">${shop.address}</div>` : ''}
-        ${shop.phone ? `<div class="shop-detail">📞 ${shop.phone}</div>` : ''}
+        ${shop.phone ? `<div class="shop-detail">${shop.phone}</div>` : ''}
         ${shop.gstin ? `<div class="shop-detail">${shop.gstin}</div>` : ''}
       </div>
 
@@ -161,7 +161,7 @@ function generateReceiptHTML(cart, taxes, orderId, shopConfig = {}) {
       </div>
 
       <div class="footer">
-        <p>🙏 Thank you for shopping!</p>
+        <p>Thank you for shopping!</p>
         <p>Please visit again</p>
         <div class="receipt-id">
           Items: ${cart.reduce((sum, item) => sum + item.qty, 0)} | 

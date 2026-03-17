@@ -58,9 +58,12 @@ const OrderDetailModal = ({ visible, order, onClose }) => {
                         borderBottomColor: theme.border + '30',
                     }}>
                         <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>
-                                🧾 Order Details
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Ionicons name="receipt" size={20} color={theme.text} style={{ marginRight: 8 }} />
+                                <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>
+                                    Order Details
+                                </Text>
+                            </View>
                             <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 4 }} numberOfLines={1}>
                                 {order.orderId || 'Unknown Order'}
                             </Text>

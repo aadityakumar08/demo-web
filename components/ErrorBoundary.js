@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { crossAlert } from '../utils/crossAlert';
 import { useTheme } from '../utils/theme';
 import { useTranslation } from '../utils/i18n';
@@ -92,9 +93,12 @@ const ErrorFallback = ({ error, errorInfo, onReset, onReport, errorCount }) => {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.errorContainer, { backgroundColor: theme.card }]}>
-        <Text style={[styles.errorTitle, { color: theme.error }]}>
-          🚨 {t('errorMessage')}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+          <Ionicons name="alert-circle" size={24} color={theme.error} style={{ marginRight: 8 }} />
+          <Text style={[styles.errorTitle, { color: theme.error, marginBottom: 0 }]}>
+            {t('errorMessage')}
+          </Text>
+        </View>
         
         <Text style={[styles.errorMessage, { color: theme.text }]}>
           Something went wrong. The app encountered an unexpected error.
