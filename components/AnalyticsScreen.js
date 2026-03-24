@@ -195,7 +195,7 @@ const AnalyticsScreen = () => {
           ₹{product.sales.toFixed(2)}
         </Text>
         <Text style={{ fontSize: 12, color: theme.textSecondary }}>
-          {((product.sales / analyticsData.totalSales) * 100).toFixed(1)}%
+          {(analyticsData.totalSales > 0 ? (product.sales / analyticsData.totalSales) * 100 : 0).toFixed(1)}%
         </Text>
       </View>
     </View>

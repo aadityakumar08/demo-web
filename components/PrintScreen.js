@@ -1,7 +1,7 @@
 // components/PrintScreen.js
 // Full Checkout + Payment + Print flow
 // Reads cart from CartContext, supports UPI QR and Cash payments,
-// plays success sound via expo-av, prints/shares receipts.
+// plays success sound via expo-audio, prints/shares receipts.
 
 import React, { useState, useContext, useEffect, useRef, useCallback } from 'react';
 import {
@@ -18,10 +18,10 @@ import { CartContext } from '../contexts';
 import { CURRENCY, SHOP_NAME } from '../config';
 import { printReceipt, shareAsPDF } from '../utils/printer';
 import { crossAlert } from '../utils/crossAlert';
+import { completeOrder } from '../utils/orderManager';
 
 // Lazy imports for optional dependencies
 let QRCode = null;
-let Audio = null;
 
 try {
   QRCode = require('react-native-qrcode-svg').default;
@@ -29,10 +29,21 @@ try {
   // QR code library not available — UPI QR will show fallback
 }
 
+// expo-audio: import the hook, fallback to a no-op hook if unavailable
+let useAudioPlayerHook;
 try {
-  Audio = require('expo-av').Audio;
+  useAudioPlayerHook = require('expo-audio').useAudioPlayer;
 } catch (e) {
-  // Audio not available — sound will be silently skipped
+  // expo-audio not available — provide a no-op hook that returns null
+  useAudioPlayerHook = () => null;
+}
+
+// Local success sound asset
+let successSoundSource = null;
+try {
+  successSoundSource = require('../assets/sounds/success.wav');
+} catch (e) {
+  // Sound asset not available
 }
 
 const UPI_ID = 'aadibhai5098-1@okaxis';
@@ -51,8 +62,10 @@ const PrintScreen = () => {
   const [isSharing, setIsSharing] = useState(false);
 
   // Sound ref for cleanup
-  const soundRef = useRef(null);
   const confirmTimerRef = useRef(null);
+
+  // Audio player (expo-audio hook — always called, returns null if unavailable)
+  const audioPlayer = useAudioPlayerHook(successSoundSource);
 
   // Reset state when cart changes (new checkout session)
   useEffect(() => {
@@ -65,14 +78,6 @@ const PrintScreen = () => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (soundRef.current) {
-        try {
-          soundRef.current.unloadAsync();
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-        soundRef.current = null;
-      }
       if (confirmTimerRef.current) {
         clearTimeout(confirmTimerRef.current);
         confirmTimerRef.current = null;
@@ -97,35 +102,13 @@ const PrintScreen = () => {
   }, [total]);
 
   // Play success sound
-  const playSuccessSound = async () => {
-    if (!Audio) return;
+  const playSuccessSound = () => {
+    if (!audioPlayer) return;
     try {
-      // Unload previous sound if any
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
-        soundRef.current = null;
-      }
-
-      const { sound } = await Audio.Sound.createAsync(
-        // Use a built-in system sound or a bundled asset
-        // For cross-platform compatibility, we'll use a simple approach
-        { uri: 'https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg' },
-        { shouldPlay: true, volume: 0.8 }
-      );
-      soundRef.current = sound;
-
-      // Auto-unload after playback
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
-          sound.unloadAsync().catch(() => { });
-          if (soundRef.current === sound) {
-            soundRef.current = null;
-          }
-        }
-      });
+      audioPlayer.seekTo(0);
+      audioPlayer.play();
     } catch (e) {
       // Sound playback failed — non-critical, ignore silently
-      console.warn('Sound playback failed:', e.message);
     }
   };
 
@@ -144,18 +127,34 @@ const PrintScreen = () => {
       // Play success sound (non-blocking)
       playSuccessSound();
 
+      // Save order to local storage for analytics (non-blocking)
+      try {
+        await completeOrder(cart);
+      } catch (e) {
+        // Order save failed — non-critical for payment flow
+        console.warn('Order save failed:', e.message);
+      }
+
       confirmTimerRef.current = null;
     }, 300);
-  }, [isPaymentDone, isConfirming]);
+  }, [isPaymentDone, isConfirming, cart]);
 
   // Cash payment — instant success
-  const handleCashPayment = useCallback(() => {
+  const handleCashPayment = useCallback(async () => {
     if (isPaymentDone) return;
     setSelectedPaymentMethod('cash');
     setPaymentStatus('success');
     setIsPaymentDone(true);
     playSuccessSound();
-  }, [isPaymentDone]);
+
+    // Save order to local storage for analytics (non-blocking)
+    try {
+      await completeOrder(cart);
+    } catch (e) {
+      // Order save failed — non-critical for payment flow
+      console.warn('Order save failed:', e.message);
+    }
+  }, [isPaymentDone, cart]);
 
   // Print receipt
   const handlePrint = async () => {
@@ -672,76 +671,76 @@ const PrintScreen = () => {
         )}
 
         {/* ==================== ACTIONS ==================== */}
-        <View style={{
-          backgroundColor: theme.card,
-          borderRadius: 20,
-          padding: 20,
-          marginBottom: 20,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.08,
-          shadowRadius: 8,
-          elevation: 4,
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-            <Ionicons name="print" size={18} color={theme.text} style={{ marginRight: 8 }} />
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>
-              Receipt Actions
-            </Text>
-          </View>
-
-          {/* Print Button */}
-          <TouchableOpacity
-            style={{
-              backgroundColor: isPaymentDone ? theme.primary : theme.border + '60',
-              paddingVertical: 16,
-              borderRadius: 16,
-              alignItems: 'center',
-              marginBottom: 12,
-              opacity: isPrinting ? 0.7 : 1,
-            }}
-            onPress={handlePrint}
-            disabled={!isPaymentDone || isPrinting}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              {isPrinting ? (
-                <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
-              ) : (
-                <Ionicons name="print" size={20} color="#fff" style={{ marginRight: 8 }} />
-              )}
-              <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>
-                {isPrinting ? 'Printing...' : 'Print Receipt'}
+        {isPaymentDone ? (
+          <View style={{
+            backgroundColor: theme.card,
+            borderRadius: 20,
+            padding: 20,
+            marginBottom: 20,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 4,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <Ionicons name="print" size={18} color={theme.text} style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>
+                Receipt Actions
               </Text>
             </View>
-          </TouchableOpacity>
 
-          {/* Share Button */}
-          <TouchableOpacity
-            style={{
-              backgroundColor: isPaymentDone ? '#6366f1' : theme.border + '60',
-              paddingVertical: 16,
-              borderRadius: 16,
-              alignItems: 'center',
-              marginBottom: 12,
-              opacity: isSharing ? 0.7 : 1,
-            }}
-            onPress={handleShare}
-            disabled={!isPaymentDone || isSharing}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              {isSharing ? (
-                <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
-              ) : (
-                <Ionicons name="share-social" size={20} color="#fff" style={{ marginRight: 8 }} />
-              )}
-              <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>
-                {isSharing ? 'Sharing...' : 'Share as PDF'}
-              </Text>
-            </View>
-          </TouchableOpacity>
+            {/* Print Button */}
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.primary,
+                paddingVertical: 16,
+                borderRadius: 16,
+                alignItems: 'center',
+                marginBottom: 12,
+                opacity: isPrinting ? 0.7 : 1,
+              }}
+              onPress={handlePrint}
+              disabled={isPrinting}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {isPrinting ? (
+                  <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+                ) : (
+                  <Ionicons name="print" size={20} color="#fff" style={{ marginRight: 8 }} />
+                )}
+                <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>
+                  {isPrinting ? 'Printing...' : 'Print Receipt'}
+                </Text>
+              </View>
+            </TouchableOpacity>
 
-          {/* New Order Button */}
-          {isPaymentDone && (
+            {/* Share Button */}
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#6366f1',
+                paddingVertical: 16,
+                borderRadius: 16,
+                alignItems: 'center',
+                marginBottom: 12,
+                opacity: isSharing ? 0.7 : 1,
+              }}
+              onPress={handleShare}
+              disabled={isSharing}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {isSharing ? (
+                  <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+                ) : (
+                  <Ionicons name="share-social" size={20} color="#fff" style={{ marginRight: 8 }} />
+                )}
+                <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>
+                  {isSharing ? 'Sharing...' : 'Share as PDF'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* New Order Button */}
             <TouchableOpacity
               style={{
                 backgroundColor: 'transparent',
@@ -760,22 +759,50 @@ const PrintScreen = () => {
                 </Text>
               </View>
             </TouchableOpacity>
-          )}
-
-          {!isPaymentDone && (
+          </View>
+        ) : (
+          <View style={{
+            backgroundColor: theme.card,
+            borderRadius: 20,
+            padding: 24,
+            marginBottom: 20,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 4,
+            alignItems: 'center',
+          }}>
             <View style={{
-              flexDirection: 'row',
+              width: 52,
+              height: 52,
+              borderRadius: 26,
+              backgroundColor: theme.border + '25',
               alignItems: 'center',
               justifyContent: 'center',
-              paddingTop: 8,
+              marginBottom: 14,
             }}>
-              <Ionicons name="information-circle" size={14} color={theme.textSecondary} style={{ marginRight: 4 }} />
-              <Text style={{ fontSize: 12, color: theme.textSecondary }}>
-                Complete payment to enable printing
-              </Text>
+              <Ionicons name="lock-closed" size={24} color={theme.textSecondary} />
             </View>
-          )}
-        </View>
+            <Text style={{
+              fontSize: 16,
+              fontWeight: '600',
+              color: theme.text,
+              marginBottom: 6,
+              textAlign: 'center',
+            }}>
+              Receipt Options Locked
+            </Text>
+            <Text style={{
+              fontSize: 14,
+              color: theme.textSecondary,
+              textAlign: 'center',
+              lineHeight: 20,
+            }}>
+              Complete payment to view receipt options
+            </Text>
+          </View>
+        )}
 
         {/* ==================== PRINTER TIPS ==================== */}
         <View style={{

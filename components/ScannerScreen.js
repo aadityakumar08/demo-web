@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext, useRef } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Image, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Image, Platform, Modal, TextInput, KeyboardAvoidingView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, Camera } from 'expo-camera';
 import WebBarcodeScanner from './WebBarcodeScanner';
@@ -23,6 +23,12 @@ const ScannerScreen = () => {
   const [error, setError] = useState(null);
   const [key, setKey] = useState(0); // Force re-render of scanner
   const scannerRef = useRef(null);
+
+  // Manual entry state
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualPrice, setManualPrice] = useState('');
+  const [manualError, setManualError] = useState('');
 
   const handleBarCodeScanned = ({ data, type }) => {
     if (scanned) return;
@@ -98,6 +104,61 @@ const ScannerScreen = () => {
     setError(null);
     // Force re-render of scanner component
     setKey(prev => prev + 1);
+  };
+
+  // Manual entry handlers
+  const handleOpenManualEntry = () => {
+    setManualName('');
+    setManualPrice('');
+    setManualError('');
+    setShowManualEntry(true);
+  };
+
+  const handleCloseManualEntry = () => {
+    setShowManualEntry(false);
+    setManualName('');
+    setManualPrice('');
+    setManualError('');
+  };
+
+  const handleManualSubmit = () => {
+    const trimmedName = manualName.trim();
+    if (!trimmedName) {
+      setManualError('Item name cannot be empty');
+      return;
+    }
+    if (trimmedName.length > 200) {
+      setManualError('Item name is too long (max 200 characters)');
+      return;
+    }
+
+    const parsedPrice = parseFloat(manualPrice);
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      setManualError('Please enter a valid positive price');
+      return;
+    }
+    if (parsedPrice > 999999.99) {
+      setManualError('Price exceeds maximum allowed value');
+      return;
+    }
+
+    // Create product object matching scanned product shape
+    const manualProduct = {
+      code: `MANUAL-${Date.now()}`,
+      name: trimmedName,
+      price: parseFloat(parsedPrice.toFixed(2)),
+    };
+
+    // Use same addToCart path as scanned items
+    addToCart(manualProduct, 1);
+
+    // Show success state
+    setProductInfo(manualProduct);
+    setScanned(true);
+    setError(null);
+
+    // Close modal
+    handleCloseManualEntry();
   };
 
   const requestCameraPermission = async () => {
@@ -550,6 +611,40 @@ const ScannerScreen = () => {
                 </Text>
               </View>
             </View>
+
+            {/* Add Item Manually Button */}
+            <TouchableOpacity
+              style={{
+                marginTop: 24,
+                backgroundColor: theme.card,
+                paddingVertical: 16,
+                paddingHorizontal: 24,
+                borderRadius: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                maxWidth: 350,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                elevation: 6,
+                borderWidth: 2,
+                borderColor: theme.primary + '30',
+                borderStyle: 'dashed',
+              }}
+              onPress={handleOpenManualEntry}
+            >
+              <Ionicons name="add-circle" size={22} color={theme.primary} style={{ marginRight: 10 }} />
+              <Text style={{
+                fontSize: 16,
+                fontWeight: '600',
+                color: theme.primary,
+              }}>
+                Add Item Manually
+              </Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={{
@@ -734,6 +829,229 @@ const ScannerScreen = () => {
           </View>
         )}
       </View>
+
+      {/* Manual Entry Modal */}
+      <Modal
+        visible={showManualEntry}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseManualEntry}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={handleCloseManualEntry}
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 24,
+            }}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={() => {}}
+              style={{
+                backgroundColor: theme.card,
+                borderRadius: 24,
+                padding: 28,
+                width: '100%',
+                maxWidth: 400,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 12 },
+                shadowOpacity: 0.25,
+                shadowRadius: 20,
+                elevation: 16,
+              }}
+            >
+              {/* Modal Header */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
+                <View style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: theme.primary + '20',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 12,
+                }}>
+                  <Ionicons name="create" size={22} color={theme.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{
+                    fontSize: 20,
+                    fontWeight: 'bold',
+                    color: theme.text,
+                  }}>
+                    Add Item Manually
+                  </Text>
+                  <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>
+                    Enter product details below
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={handleCloseManualEntry}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: theme.background,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="close" size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Error Message */}
+              {manualError ? (
+                <View style={{
+                  backgroundColor: theme.error + '15',
+                  padding: 12,
+                  borderRadius: 12,
+                  marginBottom: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: theme.error + '30',
+                }}>
+                  <Ionicons name="alert-circle" size={18} color={theme.error} style={{ marginRight: 8 }} />
+                  <Text style={{ color: theme.error, fontSize: 14, flex: 1, fontWeight: '500' }}>
+                    {manualError}
+                  </Text>
+                </View>
+              ) : null}
+
+              {/* Item Name Input */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: theme.text,
+                  marginBottom: 8,
+                }}>
+                  Item Name
+                </Text>
+                <View style={{
+                  backgroundColor: theme.background,
+                  borderRadius: 14,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 16,
+                  borderWidth: 1,
+                  borderColor: theme.border + '40',
+                }}>
+                  <Ionicons name="pricetag" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
+                  <TextInput
+                    style={{
+                      flex: 1,
+                      fontSize: 16,
+                      color: theme.text,
+                      paddingVertical: 14,
+                    }}
+                    placeholder="e.g. Cotton T-Shirt"
+                    placeholderTextColor={theme.textSecondary}
+                    value={manualName}
+                    onChangeText={(text) => {
+                      setManualName(text);
+                      if (manualError) setManualError('');
+                    }}
+                    autoFocus={true}
+                    maxLength={200}
+                  />
+                </View>
+              </View>
+
+              {/* Price Input */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: theme.text,
+                  marginBottom: 8,
+                }}>
+                  Price (₹)
+                </Text>
+                <View style={{
+                  backgroundColor: theme.background,
+                  borderRadius: 14,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 16,
+                  borderWidth: 1,
+                  borderColor: theme.border + '40',
+                }}>
+                  <Text style={{ fontSize: 18, color: theme.textSecondary, marginRight: 6, fontWeight: '600' }}>₹</Text>
+                  <TextInput
+                    style={{
+                      flex: 1,
+                      fontSize: 16,
+                      color: theme.text,
+                      paddingVertical: 14,
+                    }}
+                    placeholder="0.00"
+                    placeholderTextColor={theme.textSecondary}
+                    value={manualPrice}
+                    onChangeText={(text) => {
+                      setManualPrice(text);
+                      if (manualError) setManualError('');
+                    }}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity
+                  onPress={handleCloseManualEntry}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 16,
+                    borderRadius: 14,
+                    alignItems: 'center',
+                    backgroundColor: theme.background,
+                    borderWidth: 1,
+                    borderColor: theme.border + '40',
+                  }}
+                >
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: theme.textSecondary }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleManualSubmit}
+                  style={{
+                    flex: 1.5,
+                    paddingVertical: 16,
+                    borderRadius: 14,
+                    alignItems: 'center',
+                    backgroundColor: theme.primary,
+                    shadowColor: theme.primary,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 6,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name="cart" size={18} color="#fff" style={{ marginRight: 6 }} />
+                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>
+                      Add to Cart
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 };
