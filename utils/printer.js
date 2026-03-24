@@ -5,6 +5,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SHOP_NAME, CURRENCY } from '../config';
+import { getFirebaseOrders, getLocalOrders } from './orderManager';
 
 // ============================================================
 // Receipt HTML Generation
@@ -308,42 +309,39 @@ export function getReceiptPreviewHTML(cart, total, taxRate = 0) {
 
 // ============================================================
 // Print History & Analytics
+// Now reads from Firebase orders (via orderManager) instead of separate AsyncStorage
 // ============================================================
 
-const PRINT_HISTORY_KEY = 'print_history';
-
+// No-op: orders are now saved by completeOrder() in orderManager
 async function savePrintHistory(orderId, cart, taxes) {
-  try {
-    const history = {
-      orderId,
-      timestamp: new Date().toISOString(),
-      items: cart.map(item => ({ name: item.name, qty: item.qty, price: item.price })),
-      subtotal: taxes.subtotal,
-      cgst: taxes.cgst,
-      sgst: taxes.sgst,
-      total: taxes.total,
-      itemCount: cart.reduce((sum, item) => sum + item.qty, 0),
-    };
-
-    const existingHistory = await AsyncStorage.getItem(PRINT_HISTORY_KEY);
-    const historyArray = existingHistory ? JSON.parse(existingHistory) : [];
-    historyArray.push(history);
-
-    // Keep only last 200 orders
-    if (historyArray.length > 200) {
-      historyArray.splice(0, historyArray.length - 200);
-    }
-
-    await AsyncStorage.setItem(PRINT_HISTORY_KEY, JSON.stringify(historyArray));
-  } catch (error) {
-    console.error('Error saving print history:', error);
-  }
+  // Kept for backward compatibility — print history is now derived from orders
 }
 
 export async function getPrintHistory() {
   try {
-    const history = await AsyncStorage.getItem(PRINT_HISTORY_KEY);
-    return history ? JSON.parse(history) : [];
+    // Try Firebase first
+    const firebaseOrders = await getFirebaseOrders('all');
+    if (firebaseOrders && firebaseOrders.length > 0) {
+      return firebaseOrders.map(order => ({
+        orderId: order.orderId,
+        timestamp: order.timestamp,
+        items: (order.items || []).map(item => ({ name: item.name, qty: item.qty, price: item.price })),
+        subtotal: order.subtotal,
+        total: order.total,
+        itemCount: order.itemCount,
+      }));
+    }
+
+    // Fallback to local orders
+    const localOrders = await getLocalOrders();
+    return localOrders.map(order => ({
+      orderId: order.orderId,
+      timestamp: order.timestamp,
+      items: (order.items || []).map(item => ({ name: item.name, qty: item.qty, price: item.price })),
+      subtotal: order.subtotal,
+      total: order.total,
+      itemCount: order.itemCount,
+    }));
   } catch (error) {
     console.error('Error loading print history:', error);
     return [];
@@ -372,11 +370,7 @@ export async function getSalesAnalytics() {
 }
 
 export async function clearPrintHistory() {
-  try {
-    await AsyncStorage.removeItem(PRINT_HISTORY_KEY);
-    return true;
-  } catch (error) {
-    console.error('Error clearing print history:', error);
-    return false;
-  }
+  // Print history is now derived from orders — clearing orders clears history
+  // Keep function for backward compatibility
+  return true;
 }

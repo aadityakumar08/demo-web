@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../utils/theme';
 import { useTranslation } from '../utils/i18n';
 import { CartContext, ProductContext } from '../contexts';
-import { getOrderStats, syncPendingOrders } from '../utils/orderManager';
+import { getOrderStats, getLocalOrders, syncPendingOrders, subscribeToOrders, syncLocalOrdersToFirebase } from '../utils/orderManager';
 import OrderDetailModal from './OrderDetailModal';
 
 const { width, height } = Dimensions.get('window');
@@ -36,6 +36,7 @@ const AnalyticsScreen = () => {
     unsyncedCount: 0,
   });
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const unsubscribeRef = useRef(null);
 
   const periods = [
     { key: 'today', label: 'Today', icon: 'today' },
@@ -44,50 +45,87 @@ const AnalyticsScreen = () => {
     { key: 'all', label: 'All Time', icon: 'calendar' },
   ];
 
-  const loadAnalytics = async () => {
+  // Sync local orders to Firebase on first mount (non-blocking)
+  useEffect(() => {
+    syncLocalOrdersToFirebase().catch(() => {});
+  }, []);
+
+  // Compute analytics from an array of orders
+  const computeAnalytics = (orders, unsyncedCount = 0) => {
+    const productSales = {};
+    const categories = {};
+    let totalSales = 0;
+    let totalItems = 0;
+
+    orders.forEach(order => {
+      totalSales += (Number(order.total) || 0);
+      totalItems += (Number(order.itemCount) || 0);
+
+      (order.items || []).forEach(item => {
+        // Top products
+        if (productSales[item.name]) {
+          productSales[item.name].sales += (Number(item.subtotal) || 0);
+          productSales[item.name].quantity += (Number(item.qty) || 0);
+        } else {
+          productSales[item.name] = {
+            sales: Number(item.subtotal) || 0,
+            quantity: Number(item.qty) || 0,
+          };
+        }
+        // Categories — safely default to 'General'
+        const cat = item.category || 'General';
+        categories[cat] = (categories[cat] || 0) + (Number(item.subtotal) || 0);
+      });
+    });
+
+    const topProducts = Object.entries(productSales)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.sales - a.sales)
+      .slice(0, 5);
+
+    const categoryBreakdown = Object.entries(categories)
+      .map(([category, sales]) => ({ category, sales }))
+      .sort((a, b) => b.sales - a.sales);
+
+    setAnalyticsData({
+      totalSales,
+      totalItems,
+      averageOrder: orders.length > 0 ? totalSales / orders.length : 0,
+      orderCount: orders.length,
+      topProducts,
+      categoryBreakdown,
+      recentTransactions: orders.slice(0, 10),
+      unsyncedCount,
+    });
+  };
+
+  // Get period start ISO string for local filtering
+  const getPeriodStartISO = (period) => {
+    const now = new Date();
+    switch (period) {
+      case 'today':
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      case 'week':
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      case 'month':
+        return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      case 'all':
+      default:
+        return new Date(0).toISOString();
+    }
+  };
+
+  // Fallback: load analytics from AsyncStorage with period filtering
+  const loadAnalyticsFallback = async () => {
     try {
-      const stats = await getOrderStats();
-      const periodData = stats[selectedPeriod] || stats.today;
+      const allOrders = await getLocalOrders();
+      const startISO = getPeriodStartISO(selectedPeriod);
 
-      // Build top products from recent orders
-      const productSales = {};
-      const categories = {};
-      const ordersForPeriod = stats.recentOrders || [];
+      // Filter orders by period
+      const filteredOrders = allOrders.filter(o => (o.createdAt || o.timestamp) >= startISO);
+      const unsyncedCount = allOrders.filter(o => !o.synced).length;
 
-      ordersForPeriod.forEach(order => {
-        (order.items || []).forEach(item => {
-          // Top products
-          if (productSales[item.name]) {
-            productSales[item.name].sales += item.subtotal;
-            productSales[item.name].quantity += item.qty;
-          } else {
-            productSales[item.name] = { sales: item.subtotal, quantity: item.qty };
-          }
-          // Categories
-          const cat = item.category || 'General';
-          categories[cat] = (categories[cat] || 0) + item.subtotal;
-        });
-      });
-
-      const topProducts = Object.entries(productSales)
-        .map(([name, data]) => ({ name, ...data }))
-        .sort((a, b) => b.sales - a.sales)
-        .slice(0, 5);
-
-      const categoryBreakdown = Object.entries(categories)
-        .map(([category, sales]) => ({ category, sales }))
-        .sort((a, b) => b.sales - a.sales);
-
-      setAnalyticsData({
-        totalSales: periodData.totalSales,
-        totalItems: periodData.totalItems,
-        averageOrder: periodData.averageOrder,
-        orderCount: periodData.count,
-        topProducts,
-        categoryBreakdown,
-        recentTransactions: stats.recentOrders || [],
-        unsyncedCount: stats.unsyncedCount || 0,
-      });
+      computeAnalytics(filteredOrders, unsyncedCount);
     } catch (error) {
       console.error('Failed to load analytics:', error.message);
     } finally {
@@ -95,14 +133,49 @@ const AnalyticsScreen = () => {
     }
   };
 
+  // Subscribe to Firebase orders with fallback
   useEffect(() => {
-    loadAnalytics();
+    setLoading(true);
+
+    // Clean up previous subscription
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+      unsubscribeRef.current = null;
+    }
+
+    const unsub = subscribeToOrders(selectedPeriod, (orders, error) => {
+      if (error || orders === null) {
+        // Firebase failed — use AsyncStorage fallback
+        loadAnalyticsFallback();
+        return;
+      }
+      computeAnalytics(orders);
+      setLoading(false);
+    });
+
+    unsubscribeRef.current = unsub;
+
+    // If subscribeToOrders returned a no-op (Firebase unavailable), use fallback
+    const fallbackTimer = setTimeout(() => {
+      if (loading) {
+        loadAnalyticsFallback();
+      }
+    }, 3000);
+
+    return () => {
+      clearTimeout(fallbackTimer);
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    };
   }, [selectedPeriod]);
 
   const onRefresh = async () => {
     setRefreshing(true);
     await syncPendingOrders();
-    await loadAnalytics();
+    // Firebase listener will auto-update; also do fallback refresh
+    await loadAnalyticsFallback();
     setRefreshing(false);
   };
 
