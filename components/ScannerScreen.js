@@ -122,14 +122,6 @@ const ScannerScreen = () => {
     setManualError('');
   };
 
-  // Sanitize price input: allow only digits and one decimal point
-  const handlePriceChange = (text) => {
-    const cleaned = text.replace(/[^0-9.]/g, '');
-    // Prevent multiple decimal points
-    const parts = cleaned.split('.');
-    const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
-    setManualPrice(sanitized);
-  };
 
   const handleManualSubmit = () => {
     if (isSubmitting) return;
@@ -1016,7 +1008,7 @@ const ScannerScreen = () => {
                     placeholder="0.00"
                     placeholderTextColor={theme.textSecondary}
                     value={manualPrice}
-                    onChangeText={handlePriceChange}
+                    onChangeText={setManualPrice}
                     keyboardType="decimal-pad"
                   />
                 </View>
