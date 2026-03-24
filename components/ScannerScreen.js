@@ -122,43 +122,49 @@ const ScannerScreen = () => {
   };
 
   const handleManualSubmit = () => {
-    const trimmedName = manualName.trim();
-    if (!trimmedName) {
-      setManualError('Item name cannot be empty');
-      return;
+    try {
+      const trimmedName = manualName.trim();
+      if (!trimmedName) {
+        setManualError('Item name cannot be empty');
+        return;
+      }
+      if (trimmedName.length > 200) {
+        setManualError('Item name is too long (max 200 characters)');
+        return;
+      }
+
+      const parsedPrice = parseFloat(manualPrice);
+      if (isNaN(parsedPrice) || parsedPrice <= 0) {
+        setManualError('Please enter a valid positive price');
+        return;
+      }
+      if (parsedPrice > 999999.99) {
+        setManualError('Price exceeds maximum allowed value');
+        return;
+      }
+
+      // Create product object matching scanned product shape exactly
+      const manualProduct = {
+        code: `MANUAL-${Date.now()}`,
+        name: trimmedName,
+        price: parseFloat(parsedPrice.toFixed(2)),
+        category: 'General',
+      };
+
+      // Use same addToCart path as scanned items
+      addToCart(manualProduct, 1);
+
+      // Show success state
+      setProductInfo(manualProduct);
+      setScanned(true);
+      setError(null);
+
+      // Close modal
+      handleCloseManualEntry();
+    } catch (error) {
+      console.error('Manual item error:', error);
+      setManualError('Failed to add item. Please try again.');
     }
-    if (trimmedName.length > 200) {
-      setManualError('Item name is too long (max 200 characters)');
-      return;
-    }
-
-    const parsedPrice = parseFloat(manualPrice);
-    if (isNaN(parsedPrice) || parsedPrice <= 0) {
-      setManualError('Please enter a valid positive price');
-      return;
-    }
-    if (parsedPrice > 999999.99) {
-      setManualError('Price exceeds maximum allowed value');
-      return;
-    }
-
-    // Create product object matching scanned product shape
-    const manualProduct = {
-      code: `MANUAL-${Date.now()}`,
-      name: trimmedName,
-      price: parseFloat(parsedPrice.toFixed(2)),
-    };
-
-    // Use same addToCart path as scanned items
-    addToCart(manualProduct, 1);
-
-    // Show success state
-    setProductInfo(manualProduct);
-    setScanned(true);
-    setError(null);
-
-    // Close modal
-    handleCloseManualEntry();
   };
 
   const requestCameraPermission = async () => {
