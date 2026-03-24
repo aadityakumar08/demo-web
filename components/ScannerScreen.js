@@ -29,6 +29,7 @@ const ScannerScreen = () => {
   const [manualName, setManualName] = useState('');
   const [manualPrice, setManualPrice] = useState('');
   const [manualError, setManualError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleBarCodeScanned = ({ data, type }) => {
     if (scanned) return;
@@ -121,8 +122,21 @@ const ScannerScreen = () => {
     setManualError('');
   };
 
+  // Sanitize price input: allow only digits and one decimal point
+  const handlePriceChange = (text) => {
+    const cleaned = text.replace(/[^0-9.]/g, '');
+    // Prevent multiple decimal points
+    const parts = cleaned.split('.');
+    const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
+    setManualPrice(sanitized);
+  };
+
   const handleManualSubmit = () => {
+    if (isSubmitting) return;
     try {
+      setIsSubmitting(true);
+      setManualError('');
+
       const trimmedName = manualName.trim();
       if (!trimmedName) {
         setManualError('Item name cannot be empty');
@@ -133,8 +147,8 @@ const ScannerScreen = () => {
         return;
       }
 
-      const parsedPrice = parseFloat(manualPrice);
-      if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      const parsedPrice = Number(manualPrice);
+      if (!manualPrice || isNaN(parsedPrice) || parsedPrice <= 0) {
         setManualError('Please enter a valid positive price');
         return;
       }
@@ -164,6 +178,8 @@ const ScannerScreen = () => {
     } catch (error) {
       console.error('Manual item error:', error);
       setManualError('Failed to add item. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -963,10 +979,7 @@ const ScannerScreen = () => {
                     placeholder="e.g. Cotton T-Shirt"
                     placeholderTextColor={theme.textSecondary}
                     value={manualName}
-                    onChangeText={(text) => {
-                      setManualName(text);
-                      if (manualError) setManualError('');
-                    }}
+                    onChangeText={setManualName}
                     autoFocus={true}
                     maxLength={200}
                   />
@@ -1003,10 +1016,7 @@ const ScannerScreen = () => {
                     placeholder="0.00"
                     placeholderTextColor={theme.textSecondary}
                     value={manualPrice}
-                    onChangeText={(text) => {
-                      setManualPrice(text);
-                      if (manualError) setManualError('');
-                    }}
+                    onChangeText={handlePriceChange}
                     keyboardType="decimal-pad"
                   />
                 </View>
