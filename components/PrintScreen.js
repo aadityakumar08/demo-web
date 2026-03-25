@@ -46,7 +46,7 @@ try {
   // Sound asset not available
 }
 
-const UPI_ID = 'aadibhai5098-1@okaxis';
+const UPI_ID = 'aarvind3110@ibl';
 const UPI_PAYEE_NAME = 'Aniket_Garments';
 
 const PrintScreen = () => {
