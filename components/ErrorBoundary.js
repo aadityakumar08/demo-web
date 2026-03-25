@@ -28,10 +28,8 @@ class ErrorBoundary extends React.Component {
       errorCount: prevState.errorCount + 1
     }));
 
-    // Log error to console in development
-    if (__DEV__) {
-      console.error('ErrorBoundary caught an error:', error, errorInfo);
-    }
+    // Log error to console (including production for debugging production-only crashes)
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
 
     // Log error to error handler
     errorLogger.log(error, {
