@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Image, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Image, Platform, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, Camera } from 'expo-camera';
 import WebBarcodeScanner from './WebBarcodeScanner';
@@ -309,113 +309,119 @@ const ScannerScreen = () => {
   }
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      {/* Modern Header */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 24,
-        paddingVertical: 20,
-        paddingTop: 50, // Safe area for different devices
-        backgroundColor: theme.background,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.border + '20',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 4,
-      }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Image
-            source={require('../assets/logo.png')}
-            style={{ width: 44, height: 44, borderRadius: 10, marginRight: 12 }}
-            resizeMode="contain"
-          />
-          <View>
-            <Text style={{
-              fontSize: 24,
-              fontWeight: 'bold',
-              color: theme.text,
-              marginBottom: 2
-            }}>
-              Smart Scanner
-            </Text>
-            <Text style={{
-              fontSize: 13,
-              color: theme.textSecondary
-            }}>
-              Scan products to add to cart
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={{
-            backgroundColor: theme.primary + '20',
-            paddingVertical: 12,
-            paddingHorizontal: 20,
-            borderRadius: 20,
-            borderWidth: 1,
-            borderColor: theme.primary + '40',
-          }}
-          onPress={handleReset}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="refresh" size={16} color={theme.primary} style={{ marginRight: 4 }} />
-          <Text style={{
-            fontSize: 16,
-            color: theme.primary,
-            fontWeight: '600'
-          }}>
-            Reset
-          </Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {error && (
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Modern Header */}
         <View style={{
-          backgroundColor: theme.error + '15',
-          padding: 16,
-          margin: 20,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: theme.error + '30',
           flexDirection: 'row',
           alignItems: 'center',
-          shadowColor: theme.error,
+          justifyContent: 'space-between',
+          paddingHorizontal: 24,
+          paddingVertical: 20,
+          paddingTop: 50, // Safe area for different devices
+          backgroundColor: theme.background,
+          borderBottomWidth: 1,
+          borderBottomColor: theme.border + '20',
+          shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3,
+          shadowOpacity: 0.05,
+          shadowRadius: 8,
+          elevation: 4,
         }}>
-          <Ionicons name="warning" size={20} color={theme.error} style={{ marginRight: 12 }} />
-          <Text style={{
-            color: theme.error,
-            fontSize: 15,
-            flex: 1,
-            fontWeight: '500'
-          }}>
-            {error}
-          </Text>
-        </View>
-      )}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Image
+              source={require('../assets/logo.png')}
+              style={{ width: 44, height: 44, borderRadius: 10, marginRight: 12 }}
+              resizeMode="contain"
+            />
+            <View>
+              <Text style={{
+                fontSize: 24,
+                fontWeight: 'bold',
+                color: theme.text,
+                marginBottom: 2
+              }}>
+                Smart Scanner
+              </Text>
+              <Text style={{
+                fontSize: 13,
+                color: theme.textSecondary
+              }}>
+                Scan products to add to cart
+              </Text>
+            </View>
+          </View>
 
-      <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: theme.primary + '20',
+              paddingVertical: 12,
+              paddingHorizontal: 20,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: theme.primary + '40',
+            }}
+            onPress={handleReset}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="refresh" size={16} color={theme.primary} style={{ marginRight: 4 }} />
+            <Text style={{
+              fontSize: 16,
+              color: theme.primary,
+              fontWeight: '600'
+            }}>
+              Reset
+            </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {error && (
+          <View style={{
+            backgroundColor: theme.error + '15',
+            padding: 16,
+            margin: 20,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: theme.error + '30',
+            flexDirection: 'row',
+            alignItems: 'center',
+            shadowColor: theme.error,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+          }}>
+            <Ionicons name="warning" size={20} color={theme.error} style={{ marginRight: 12 }} />
+            <Text style={{
+              color: theme.error,
+              fontSize: 15,
+              flex: 1,
+              fontWeight: '500'
+            }}>
+              {error}
+            </Text>
+          </View>
+        )}
+
         {!scanned ? (
           <View style={{
             alignItems: 'center',
             paddingHorizontal: 24,
             paddingTop: 20,
-            flex: 1
+            paddingBottom: 32,
           }}>
             {/* Scanner Container */}
             <View style={{
               width: '100%',
               maxWidth: 350,
-              height: 350,
+              aspectRatio: 1,
+              maxHeight: 350,
               borderRadius: 24,
               overflow: 'hidden',
               borderWidth: 3,
@@ -612,7 +618,7 @@ const ScannerScreen = () => {
             alignItems: 'center',
             paddingHorizontal: 24,
             paddingTop: 20,
-            flex: 1
+            paddingBottom: 32,
           }}>
             <View style={{
               backgroundColor: theme.card,
@@ -789,7 +795,7 @@ const ScannerScreen = () => {
             </View>
           </View>
         )}
-      </View>
+      </ScrollView>
 
       {/* Manual Entry Modal — fully isolated component, always mounted for lifecycle stability */}
       <ErrorBoundary>
@@ -801,6 +807,7 @@ const ScannerScreen = () => {
         />
       </ErrorBoundary>
     </View>
+    </SafeAreaView>
   );
 };
 
