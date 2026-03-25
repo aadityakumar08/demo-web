@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext, useRef } from 'react';
+import React, { useEffect, useState, useContext, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Image, Platform, Modal, TextInput, KeyboardAvoidingView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, Camera } from 'expo-camera';
@@ -108,22 +108,22 @@ const ScannerScreen = () => {
   };
 
   // Manual entry handlers
-  const handleOpenManualEntry = () => {
+  const handleOpenManualEntry = useCallback(() => {
     setManualName('');
     setManualPrice('');
     setManualError('');
     setShowManualEntry(true);
-  };
+  }, []);
 
-  const handleCloseManualEntry = () => {
+  const handleCloseManualEntry = useCallback(() => {
     setShowManualEntry(false);
     setManualName('');
     setManualPrice('');
     setManualError('');
-  };
+  }, []);
 
 
-  const handleManualSubmit = () => {
+  const handleManualSubmit = useCallback(() => {
     if (isSubmitting) return;
     try {
       setIsSubmitting(true);
@@ -168,12 +168,12 @@ const ScannerScreen = () => {
       // Close modal
       handleCloseManualEntry();
     } catch (error) {
-      console.error('Manual item error:', error);
+      console.error('Manual entry crash prevented:', error);
       setManualError('Failed to add item. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [manualName, manualPrice, isSubmitting, addToCart, handleCloseManualEntry]);
 
   const requestCameraPermission = async () => {
     try {
@@ -621,7 +621,7 @@ const ScannerScreen = () => {
                   <Text style={{ fontSize: 12, color: theme.textSecondary }}>Cart Items</Text>
                 </View>
                 <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>
-                  {cart.length}
+                  {Array.isArray(cart) ? cart.length : 0}
                 </Text>
               </View>
             </View>
@@ -1064,4 +1064,4 @@ const ScannerScreen = () => {
   );
 };
 
-export default ScannerScreen;
+export default React.memo(ScannerScreen);
